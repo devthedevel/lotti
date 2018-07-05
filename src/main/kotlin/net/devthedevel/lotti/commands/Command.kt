@@ -52,7 +52,7 @@ sealed class Command constructor(val context: CommandContext) {
             //Return corresponding command, or null if we couldn't determine command
             return when {
                 CreateNewLottoCommand.COMMAND_NAME == commandName -> CreateNewLottoCommand(context)
-                UserBuyTicketCommand.COMMAND_NAME == commandName -> UserBuyTicketCommand(context)
+                UserRequestTicketCommand.COMMAND_NAME == commandName -> UserRequestTicketCommand(context)
                 DrawWinnerCommand.COMMAND_NAME == commandName -> DrawWinnerCommand(context)
                 HelpCommand.COMMAND_NAME == commandName -> HelpCommand(context)
                 StatusCommand.COMMAND_NAME == commandName -> StatusCommand(context)
@@ -65,7 +65,6 @@ sealed class Command constructor(val context: CommandContext) {
     /*
     Methods
     */
-    abstract fun validate(): Boolean
     abstract fun execute()
 
     /*
@@ -74,10 +73,6 @@ sealed class Command constructor(val context: CommandContext) {
     class CreateNewLottoCommand(context: CommandContext): Command(context) {
         companion object {
             const val COMMAND_NAME: String = "new"
-        }
-
-        override fun validate(): Boolean {
-            return context.arguments[0] == COMMAND_NAME
         }
 
         override fun execute() {
@@ -95,54 +90,43 @@ sealed class Command constructor(val context: CommandContext) {
         }
     }
 
-    class UserBuyTicketCommand(context: CommandContext): Command(context) {
+    class UserRequestTicketCommand(context: CommandContext): Command(context) {
         var numTickets: Int = 0
 
         init {
-            if (context.arguments.size >= 2) numTickets = context.arguments[1].toInt()
+            if (context.arguments.isNotEmpty()) numTickets = context.arguments[0].toInt()
         }
 
         companion object {
             const val COMMAND_NAME: String = "buy"
         }
 
-        override fun validate(): Boolean {
-            if (context.arguments[0] == COMMAND_NAME) {
-                val num: Int? = context.arguments[1].toIntOrNull()
-                if (num != null && num > 0) {
-                    return true
-                }
-            }
-            return false
-        }
-
         override fun execute() {
-            val (op, result, _) = LotteryDatabase.userBuyTickets(context.guild, context.channel, context.sender, numTickets)
+            val (_, _, adminRoles) = LotteryDatabase.getAdminOptions(context.guild)
 
-            val messageBuilder = MessageBuilder(Lotti.CLIENT)
-            messageBuilder.withChannel(context.channel)
-            when (op) {
-                OperationStatus.COMPLETED -> {
-                    messageBuilder.withContent("${context.sender.mention(true)} has bought $numTickets entries for a total of $result entries")
+            val isAdmin = adminRoles.intersect(context.sender.getRolesForGuild(context.guild)).isNotEmpty()
+
+            val (op, approved, requested) = LotteryDatabase.userBuyTickets(context.guild, context.channel, context.sender, numTickets, isAdmin)
+
+            MessageBuilder(Lotti.CLIENT).apply {
+                withChannel(context.channel)
+                when (op) {
+                    OperationStatus.COMPLETED -> {
+                        withContent("${context.sender.mention(true)} has bought $numTickets tickets. You have $approved approved tickets, and $requested requested tickets.")
+                    }
+                    OperationStatus.DOES_NOT_EXIST -> {
+                        withContent("Hey ${context.sender.mention(true)}, I know you're eager to throw away money but there's no lottery started. Ask your leaders to start one.")
+                    }
+                    else -> return InvalidCommand(context).execute()
                 }
-                OperationStatus.DOES_NOT_EXIST -> {
-                    messageBuilder.withContent("Hey ${context.sender.mention(true)}, I know you're eager to throw away money but there's no lottery started. Ask your leaders to start one.")
-                }
-                OperationStatus.FAILED -> {
-                    messageBuilder.withContent("Oh uh, something went wrong! ${context.sender.mention(true)}, this is probably your fault, just saying.")
-                }
+                send()
             }
-            messageBuilder.send()
         }
     }
 
     class DrawWinnerCommand(context: CommandContext): Command(context) {
         companion object {
             const val COMMAND_NAME: String = "draw"
-        }
-
-        override fun validate(): Boolean {
-            return true
         }
 
         override fun execute() {
@@ -177,10 +161,6 @@ sealed class Command constructor(val context: CommandContext) {
             const val COMMAND_NAME: String = "help"
         }
 
-        override fun validate(): Boolean {
-            return context.arguments[0] == COMMAND_NAME
-        }
-
         override fun execute() {
             MessageBuilder(Lotti.CLIENT).apply {
                withChannel(context.channel)
@@ -202,10 +182,6 @@ sealed class Command constructor(val context: CommandContext) {
 
         private val scope: String? = if (context.arguments.size == 0) null else context.arguments[0]
 
-        override fun validate(): Boolean {
-            return context.arguments[0] == COMMAND_NAME
-        }
-
         override fun execute() {
             if (scope != null) {
 
@@ -225,7 +201,7 @@ sealed class Command constructor(val context: CommandContext) {
                         for (userTicket: Pair<Long, Int> in users) {
                             val user = context.guild.getUserByID(userTicket.first)
                             val userName = user.getNicknameForGuild(context.guild)?: user.getDisplayName(context.guild)
-                            appendContent("$userName: ${userTicket.second} tickets")
+                            appendContent("$userName: ${userTicket.second} requested")
                         }
                     }
                     OperationStatus.DOES_NOT_EXIST -> withContent("Hey ${context.sender.mention(true)}, I know you're eager to throw away money but there's no lottery started. Ask your leaders to start one.")
@@ -245,10 +221,6 @@ sealed class Command constructor(val context: CommandContext) {
         private val json: String? = context.json
         private val adminOp: AdminOperation = if (context.arguments.size == 1) AdminOperation.parseOperation(context.arguments[0]) else AdminOperation.GET
 
-        override fun validate(): Boolean {
-            return COMMAND_NAME == context.arguments.removeAt(0)
-        }
-
         override fun execute() {
             var options: AdminOptions? = null
 
@@ -256,23 +228,40 @@ sealed class Command constructor(val context: CommandContext) {
             if (json != null ) {
                 try {
                     val userConverter = UserConverter(context.guild)
-                    options = Klaxon().converter(userConverter.converter).parse<AdminOptions>(json).apply { this?.adminOperation = adminOp }
+                    options = Klaxon().converter(userConverter.converter).parse<AdminOptions>(json)
                 } catch (e: Exception) {}
             }
 
-            when (options?.adminOperation) {
-                AdminOperation.SET, AdminOperation.ADD -> {
-
-                    LotteryDatabase.setAdminOptions(context.guild, context.channel, options)
+            when (adminOp) {
+                //Get the current guild's config
+                AdminOperation.GET -> {
+                    val (op, _options, roles) = LotteryDatabase.getAdminOptions(context.guild)
 
                     MessageBuilder(Lotti.CLIENT).apply {
                         withChannel(context.channel)
-                        withContent("Admin set")
+                        when (op) {
+                            OperationStatus.COMPLETED -> {
+                                withContent(context.sender.mention(true) + "\n")
+                                appendContent("Currency: ${_options.currency}, Price: ${_options.price}\n")
+                                appendContent("Admin Roles: \n")
+                                roles.forEach{appendContent("- $it \n")}
+                            }
+                            else -> {}
+                        }
                         send()
                     }
                 }
-                AdminOperation.GET -> {
-                    LotteryDatabase.getAdminOptions(context.guild)
+                //Update current guild's config
+                AdminOperation.SET, AdminOperation.ADD -> {
+                    if (options != null) {
+                        LotteryDatabase.setAdminOptions(context.guild, context.channel, options, adminOp)
+
+                        MessageBuilder(Lotti.CLIENT).apply {
+                            withChannel(context.channel)
+                            withContent("Admin set")
+                            send()
+                        }
+                    }
                 }
                 else -> return InvalidCommand(context).execute()
             }
@@ -280,14 +269,6 @@ sealed class Command constructor(val context: CommandContext) {
     }
 
     class InvalidCommand(context: CommandContext): Command(context) {
-        companion object {
-            const val COMMAND_NAME: String = "invalid"
-        }
-
-        override fun validate(): Boolean {
-            return true
-        }
-
         override fun execute() {
             MessageBuilder(Lotti.CLIENT).apply {
                 withChannel(context.channel)

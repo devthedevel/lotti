@@ -6,7 +6,6 @@ import net.devthedevel.lotti.commands.AdminOptions
 import net.devthedevel.lotti.db.dto.ChannelStatus
 import net.devthedevel.lotti.db.dto.DatabaseResult
 import net.devthedevel.lotti.db.tables.*
-import org.apache.commons.lang3.mutable.Mutable
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SchemaUtils.create
@@ -15,6 +14,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.postgresql.util.PSQLException
 import sx.blah.discord.handle.obj.IChannel
 import sx.blah.discord.handle.obj.IGuild
+import sx.blah.discord.handle.obj.IRole
 import sx.blah.discord.handle.obj.IUser
 import java.sql.DriverManager
 
@@ -24,7 +24,7 @@ object LotteryDatabase {
 
     fun initTables() {
         transaction(db) {
-            create (GuildOptionsTable, AdminRolesTable, LotteryTable, UserTicketsTable)
+            create (GuildOptionsTable, AdminRolesTable, LotteryTable, LotteryTicketsTable)
         }
     }
 
@@ -88,30 +88,54 @@ object LotteryDatabase {
         return dbResult
     }
 
-    fun userBuyTickets(guild: IGuild, channel: IChannel, user: IUser, numTickets: Int): DatabaseResult {
-        var dbResult = DatabaseResult()
-        var userTickets = numTickets
+    fun userBuyTickets(guild: IGuild, channel: IChannel, user: IUser, numTickets: Int, isAdmin: Boolean): Triple<OperationStatus, Int, Int> {
+        var dbResult = Triple(OperationStatus.FAILED, 0, numTickets)
         transaction(db) {
             try {
-                TransactionManager.current().exec("INSERT INTO usertickets (lotto_index, user_id, tickets) VALUES (" +
-                        "(SELECT lot.id FROM lottery AS lot WHERE lot.channel_id = ${channel.longID} AND lot.guild_index =" +
-                        "(SELECT go.id FROM guildoptions AS go WHERE go.guild_id = ${guild.longID})), ${user.longID}, $numTickets) ON CONFLICT ON CONSTRAINT pk_usertickets DO UPDATE SET tickets = usertickets.tickets + EXCLUDED.tickets") {rs ->
-                    if (rs.next()) { }
-                }
+                //TODO Figure out how to do the following statement in Exposed
+                val ticketTable = LotteryTicketsTable.tableName
+                val lottoIndex = LotteryTicketsTable.lottoIndex.name
+                val userId = LotteryTicketsTable.userId.name
+                val approved = LotteryTicketsTable.approved.name
+                val requested = LotteryTicketsTable.requested.name
 
-                TransactionManager.current().exec("SELECT ut.tickets FROM usertickets AS ut WHERE ut.user_id = ${user.longID} AND ut.lotto_index = (SELECT lot.id FROM lottery AS lot WHERE lot.channel_id = ${channel.longID} AND lot.guild_index = (SELECT go.id FROM guildoptions AS go WHERE go.guild_id = ${guild.longID}))") {rs ->
-                    if (rs.next()) {
-                        userTickets = rs.getInt(UserTicketsTable.tickets.name)
+                val lotteryTable = LotteryTable.tableName
+                val guildTable = GuildOptionsTable.tableName
+
+                val sb = StringBuilder().apply {
+                    append("INSERT INTO $ticketTable ($lottoIndex, $userId, $approved, $requested) VALUES ")
+                    append("((SELECT lot.id FROM $lotteryTable AS lot WHERE lot.channel_id = ${channel.longID} AND lot.guild_index = (SELECT go.id FROM $guildTable AS go WHERE go.guild_id = ${guild.longID})),")
+                    append("${user.longID}, ")
+                    append("0, ")
+                    append("$numTickets) ON CONFLICT ON CONSTRAINT pk_$ticketTable DO UPDATE SET ")
+
+                    //Directly approve admin tickets
+                    if (isAdmin) {
+                        append("approved = $ticketTable.approved + EXCLUDED.requested")
+                    } else {
+                        append("requested = $ticketTable.requested + EXCLUDED.requested")
                     }
                 }
 
-                dbResult = DatabaseResult(operationStatus = OperationStatus.COMPLETED, result = userTickets)
+                TransactionManager.current().exec(sb.toString()) {rs ->
+                    if (rs.next()) { }
+                }
+
+                TransactionManager.current().exec(
+                        "SELECT ut.approved, ut.requested FROM $ticketTable AS ut WHERE ut.user_id = ${user.longID} " +
+                                "AND ut.lotto_index = (SELECT lot.id FROM $lotteryTable AS lot WHERE lot.channel_id = ${channel.longID} " +
+                                "AND lot.guild_index = (SELECT go.id FROM $guildTable AS go WHERE go.guild_id = ${guild.longID}))") {rs ->
+                    if (rs.next()) {
+                        dbResult = Triple(OperationStatus.COMPLETED, rs.getInt(LotteryTicketsTable.approved.name), rs.getInt(LotteryTicketsTable.requested.name))
+                    }
+                }
+
             } catch (e: Exception) {
                 val cause: String? = e.cause?.message
-                println(cause)
-                dbResult = when {
-                    cause?.contains("is not present in table") ?: false -> DatabaseResult(operationStatus = OperationStatus.DOES_NOT_EXIST, message = cause)
-                    else -> DatabaseResult(message = cause)
+                dbResult = if (cause?.contains("is not present in table") ?: false) {
+                    Triple(OperationStatus.DOES_NOT_EXIST, 0, 0)
+                } else {
+                    dbResult
                 }
             }
         }
@@ -124,10 +148,10 @@ object LotteryDatabase {
             try {
                 val userTicketList: MutableList<Long> = mutableListOf()
 
-                TransactionManager.current().exec("SELECT ut.user_id, ut.tickets FROM usertickets AS ut WHERE ut.lotto_index = (SELECT lot.id FROM lottery AS lot WHERE lot.channel_id = ${channel.longID} AND lot.guild_index = (SELECT go.id FROM guildoptions AS go WHERE go.guild_id = ${guild.longID}))") {rs ->
+                TransactionManager.current().exec("SELECT ut.user_id, ut.requested FROM usertickets AS ut WHERE ut.lotto_index = (SELECT lot.id FROM lottery AS lot WHERE lot.channel_id = ${channel.longID} AND lot.guild_index = (SELECT go.id FROM guildoptions AS go WHERE go.guild_id = ${guild.longID}))") {rs ->
                     while (rs.next()) {
-                        for (i: Int in 0 until rs.getInt(UserTicketsTable.tickets.name)) {
-                            userTicketList.add(rs.getLong(UserTicketsTable.userId.name))
+                        for (i: Int in 0 until rs.getInt(LotteryTicketsTable.requested.name)) {
+                            userTicketList.add(rs.getLong(LotteryTicketsTable.userId.name))
                         }
                     }
                 }
@@ -164,7 +188,7 @@ object LotteryDatabase {
         val channelStatus = ChannelStatus()
         transaction(db) {
             try {
-                TransactionManager.current().exec("SELECT go.ticket_price, go.currency, lot.creator_id, ut.user_id, ut.tickets FROM guildoptions AS go" +
+                TransactionManager.current().exec("SELECT go.ticket_price, go.currency, lot.creator_id, ut.user_id, ut.requested FROM guildoptions AS go" +
                         "  LEFT JOIN currencynames AS cn on go.currency_index = cn.id" +
                         "  LEFT JOIN usertickets AS ut on lot.id = ut.lotto_index" +
                         "  WHERE go.guild_id = ${guild.longID} AND lot.channel_id = ${channel.longID}") {rs ->
@@ -173,7 +197,7 @@ object LotteryDatabase {
                         val creatorId = rs.getLong(LotteryTable.creator.name)
                         val currencyName = rs.getString(GuildOptionsTable.currency.name)
                         val ticketPrice = rs.getInt(GuildOptionsTable.ticketPrice.name)
-                        val userTickets = Pair(rs.getLong(UserTicketsTable.userId.name), rs.getInt(UserTicketsTable.tickets.name))
+                        val userTickets = Pair(rs.getLong(LotteryTicketsTable.userId.name), rs.getInt(LotteryTicketsTable.requested.name))
 
                         channelStatus.creatorId = creatorId
                         channelStatus.currencyName = currencyName
@@ -185,7 +209,7 @@ object LotteryDatabase {
                         lottoExists = true
                     }
                     while (rs.next()) {
-                        channelStatus.userTickets.add(Pair(rs.getLong(UserTicketsTable.userId.name), rs.getInt(UserTicketsTable.tickets.name)))
+                        channelStatus.userTickets.add(Pair(rs.getLong(LotteryTicketsTable.userId.name), rs.getInt(LotteryTicketsTable.requested.name)))
                     }
                     channelStatus.operationStatus = if (lottoExists) OperationStatus.COMPLETED else OperationStatus.DOES_NOT_EXIST
                 }
@@ -198,12 +222,12 @@ object LotteryDatabase {
         return channelStatus
     }
 
-    fun setAdminOptions(guild: IGuild, channel: IChannel, options: AdminOptions) {
+    fun setAdminOptions(guild: IGuild, channel: IChannel, options: AdminOptions, op: AdminOperation) {
         transaction(db) {
 
             val guildIndex = GuildOptionsTable.slice(GuildOptionsTable.id).select({ GuildOptionsTable.guildId eq guild.longID}).single()[GuildOptionsTable.id]
 
-            when (options.adminOperation) {
+            when (op) {
                 AdminOperation.SET -> {
                     try {
 
@@ -248,8 +272,8 @@ object LotteryDatabase {
         }
     }
 
-    fun getAdminOptions(guild: IGuild): Triple<OperationStatus, AdminOptions, MutableList<Long>> {
-        var dbResult = Triple(OperationStatus.FAILED, AdminOptions(), mutableListOf<Long>())
+    fun getAdminOptions(guild: IGuild): Triple<OperationStatus, AdminOptions, MutableList<IRole>> {
+        var dbResult = Triple(OperationStatus.FAILED, AdminOptions(), mutableListOf<IRole>())
         transaction(db) {
             val options: AdminOptions
             val resultRow = GuildOptionsTable.slice(GuildOptionsTable.id,
@@ -257,10 +281,10 @@ object LotteryDatabase {
                     GuildOptionsTable.ticketPrice).select({ GuildOptionsTable.guildId eq guild.longID}).single()
 
             val guildIndex = resultRow[GuildOptionsTable.id]
-            options = AdminOptions(AdminOperation.GET, resultRow[GuildOptionsTable.currency], resultRow[GuildOptionsTable.ticketPrice])
+            options = AdminOptions(resultRow[GuildOptionsTable.currency], resultRow[GuildOptionsTable.ticketPrice])
 
-            val roles = mutableListOf<Long>()
-            AdminRolesTable.slice(AdminRolesTable.roleId).select({ AdminRolesTable.guildId eq guildIndex}).mapTo(roles) {it[AdminRolesTable.roleId]}
+            val roles = mutableListOf<IRole>()
+            AdminRolesTable.slice(AdminRolesTable.roleId).select({ AdminRolesTable.guildId eq guildIndex}).mapTo(roles) {guild.getRoleByID(it[AdminRolesTable.roleId])}
 
             dbResult = Triple(OperationStatus.COMPLETED, options, roles)
             println("")
