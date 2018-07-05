@@ -1,0 +1,1 @@
+worker: java -Dserver.port=$PORT -Djdbc.drivers=org.postgresql.Driver -jar build/libs/net.devthedevel.lotti-1.0-SNAPSHOT.jar
