@@ -314,19 +314,34 @@ sealed class Command constructor(val context: CommandContext) {
 
             when (adminOp) {
                 AdminOperation.GET -> {
-                    val (op, users) = LotteryDatabase.getTicketRequests(context.guild, context.channel, requests)
-
                     MessageBuilder(Lotti.CLIENT).apply {
                         withChannel(context.channel)
+
+                        //Return early if user given in JSON does not exist in guild
+                        if (json != null && requests?.isEmpty() == true) {
+                            withContent(context.sender.mention(true) + "\n")
+                            appendContent("User doesn't exist. Have you spelled the name correctly?")
+                            send()
+                            return
+                        }
+
+                        val (op, users) = LotteryDatabase.getTicketRequests(context.guild, context.channel, requests)
+
                         when (op) {
                             OperationStatus.COMPLETED -> {
                                 withContent(context.sender.mention(true) + "\n")
                                 users.forEach {
-                                    val username = it.user?.getNicknameForGuild(context.guild) ?: it.user?.getDisplayName(context.guild)
-                                    appendContent("- $username: ${it.tickets} requested tickets")
+                                    val username = it.user?.getNicknameForGuild(context.guild)
+                                            ?: it.user?.getDisplayName(context.guild)
+                                    appendContent("- $username: ${it.tickets} requested tickets\n")
                                 }
                             }
-                            else -> {}
+                            OperationStatus.NO_RESULT -> {
+                                withContent(context.sender.mention(true) + "\n")
+                                appendContent("No requested tickets at this time")
+                            }
+                            else -> {
+                            }
                         }
                         send()
                     }

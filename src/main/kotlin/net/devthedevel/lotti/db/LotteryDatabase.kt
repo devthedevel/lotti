@@ -297,24 +297,31 @@ object LotteryDatabase {
     fun getTicketRequests(guild: IGuild, channel: IChannel, requests: List<AdminRequests>?): Pair<OperationStatus, List<AdminRequests>> {
         var dbResult = Pair(OperationStatus.FAILED, listOf<AdminRequests>())
         transaction(this.db) {
-            if (requests != null) {
-                if (requests.isEmpty()) {
-                    val guildId = GuildOptionsTable.slice(GuildOptionsTable.id).select({GuildOptionsTable.guildId eq guild.longID}).single()[GuildOptionsTable.id]
-                    val lottoId = LotteryTable.slice(LotteryTable.id).select({LotteryTable.guildIndex eq guildId}).single()[LotteryTable.id]
 
-                    val resultRow = LotteryTicketsTable.slice(LotteryTicketsTable.userId, LotteryTicketsTable.requested).select({LotteryTicketsTable.lottoIndex eq lottoId})
+            val guildId = GuildOptionsTable.slice(GuildOptionsTable.id).select({GuildOptionsTable.guildId eq guild.longID}).single()[GuildOptionsTable.id]
+            val lottoId = LotteryTable.slice(LotteryTable.id).select{(LotteryTable.guildIndex eq guildId) and (LotteryTable.channelId eq channel.longID)}.single()[LotteryTable.id]
 
-                    val users = mutableListOf<AdminRequests>()
+            val users = mutableListOf<AdminRequests>()
+            val query: Query
 
-                    resultRow.forEach {
-                        users.add(AdminRequests(guild.getUserByID(it[LotteryTicketsTable.userId]), it[LotteryTicketsTable.requested]))
-                    }
-
-                    dbResult = Pair(OperationStatus.COMPLETED, users)
-                }
+            //Get only users listed in requests
+            //If null or empty, get all users in table
+            query = if (requests?.isNotEmpty() == true) {
+                val userIds = mutableListOf<Long>()
+                requests.mapNotNullTo(userIds) {it.user?.longID}
+                LotteryTicketsTable.slice(LotteryTicketsTable.userId, LotteryTicketsTable.requested).select{
+                    (LotteryTicketsTable.lottoIndex eq lottoId) and (LotteryTicketsTable.userId inList userIds)}
             } else {
-
+                LotteryTicketsTable.slice(LotteryTicketsTable.userId, LotteryTicketsTable.requested).select({LotteryTicketsTable.lottoIndex eq lottoId})
             }
+
+            query.forEach {
+                val requested = it[LotteryTicketsTable.requested]
+                //Ignore users that have no requested tickets
+                if (requested != 0) { users.add(AdminRequests(guild.getUserByID(it[LotteryTicketsTable.userId]), requested)) }
+            }
+
+            dbResult = if (users.isEmpty()) Pair(OperationStatus.NO_RESULT, users) else Pair(OperationStatus.COMPLETED, users)
         }
 
         return dbResult

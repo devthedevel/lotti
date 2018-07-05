@@ -5,5 +5,6 @@ enum class OperationStatus {
     FAILED,
     EXISTS,
     DOES_NOT_EXIST,
-    NO_CHANGE
+    NO_CHANGE,
+    NO_RESULT
 }
