@@ -1,13 +1,14 @@
 package net.devthedevel.lotti.commands
 
 import com.beust.klaxon.Json
+import sx.blah.discord.handle.obj.IRole
 
 data class AdminOptions(
         @Json(ignored = true)
         var adminOperation: AdminOperation = AdminOperation.GET,
         val currency: String? = null,
         val price: Int? = null,
-        var roles: MutableList<String> = mutableListOf()
+        var roles: MutableList<IRole> = mutableListOf()
 )
 
 enum class AdminOperation(val opString: String) {

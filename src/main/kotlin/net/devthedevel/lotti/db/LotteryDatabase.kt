@@ -6,6 +6,7 @@ import net.devthedevel.lotti.commands.AdminOptions
 import net.devthedevel.lotti.db.dto.ChannelStatus
 import net.devthedevel.lotti.db.dto.DatabaseResult
 import net.devthedevel.lotti.db.tables.*
+import org.apache.commons.lang3.mutable.Mutable
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SchemaUtils.create
@@ -23,13 +24,7 @@ object LotteryDatabase {
 
     fun initTables() {
         transaction(db) {
-            create (CurrencyNamesTable, GuildOptionsTable, AdminRolesTable, LotteryTable, UserTicketsTable)
-
-            commit()
-
-            CurrencyNamesTable.batchInsert(CurrencyNamesTable.CURRENCY_VALUES, true) { currency ->
-                this[CurrencyNamesTable.name] = currency
-            }
+            create (GuildOptionsTable, AdminRolesTable, LotteryTable, UserTicketsTable)
         }
     }
 
@@ -63,7 +58,7 @@ object LotteryDatabase {
             try {
                 val gid = GuildOptionsTable.insertIgnore {
                     it[guildId] = guild.longID
-                    it[currencyIndex] = CurrencyNamesTable.DEFAULT_CURRENCY_INDEX
+                    it[currency] = GuildOptionsTable.DEFAULT_CURRENCY_NAME
                     it[ticketPrice] = GuildOptionsTable.DEFAULT_TICKET_PRICE
                 } get GuildOptionsTable.id
 
@@ -169,15 +164,14 @@ object LotteryDatabase {
         val channelStatus = ChannelStatus()
         transaction(db) {
             try {
-                TransactionManager.current().exec("SELECT go.ticket_price, cn.currency_name, lot.creator_id, ut.user_id, ut.tickets FROM guildoptions AS go" +
+                TransactionManager.current().exec("SELECT go.ticket_price, go.currency, lot.creator_id, ut.user_id, ut.tickets FROM guildoptions AS go" +
                         "  LEFT JOIN currencynames AS cn on go.currency_index = cn.id" +
-                        "  LEFT JOIN lottery AS lot on go.id = lot.guild_index" +
                         "  LEFT JOIN usertickets AS ut on lot.id = ut.lotto_index" +
                         "  WHERE go.guild_id = ${guild.longID} AND lot.channel_id = ${channel.longID}") {rs ->
                     var lottoExists = false
                     if (rs.next()) {
                         val creatorId = rs.getLong(LotteryTable.creator.name)
-                        val currencyName = rs.getString(CurrencyNamesTable.name.name)
+                        val currencyName = rs.getString(GuildOptionsTable.currency.name)
                         val ticketPrice = rs.getInt(GuildOptionsTable.ticketPrice.name)
                         val userTickets = Pair(rs.getLong(UserTicketsTable.userId.name), rs.getInt(UserTicketsTable.tickets.name))
 
@@ -207,34 +201,45 @@ object LotteryDatabase {
     fun setAdminOptions(guild: IGuild, channel: IChannel, options: AdminOptions) {
         transaction(db) {
 
-            //Determine role ids
-            val roles: MutableList<Long> = mutableListOf()
-            let {
-                if (options.roles.isNotEmpty()) {
-                    val optionRoles = options.roles.toSet()
-                    val guildRoles = guild.roles
-                    guildRoles.filter { it.name in optionRoles}.mapTo(roles, {it.longID})
-                }
-            }
-
             val guildIndex = GuildOptionsTable.slice(GuildOptionsTable.id).select({ GuildOptionsTable.guildId eq guild.longID}).single()[GuildOptionsTable.id]
 
             when (options.adminOperation) {
                 AdminOperation.SET -> {
                     try {
-                        AdminRolesTable.deleteWhere { AdminRolesTable.guildId eq guildIndex}
 
-                        AdminRolesTable.batchInsert(roles) { roleId ->
-                            this[AdminRolesTable.guildId] = guildIndex
-                            this[AdminRolesTable.roleId] = roleId
-                        }
+                        //SET roles
+                        if (options.roles.isNotEmpty()) {
+                            AdminRolesTable.deleteWhere { AdminRolesTable.guildId eq guildIndex}
+
+                            AdminRolesTable.batchInsert(options.roles) { role ->
+                                this[AdminRolesTable.guildId] = guildIndex
+                                this[AdminRolesTable.roleId] = role.longID
+                            }
+                        } else {} //TODO look into this
+
+                        //TODO look into combining price and currency into one query
+
+                        //SET price
+                        if (options.price != null) {
+                            GuildOptionsTable.update({GuildOptionsTable.guildId eq guild.longID}) {
+                                it[ticketPrice] = options.price
+                            }
+                        } else {}
+
+                        //SET currency
+                        if (options.currency != null) {
+                            GuildOptionsTable.update({GuildOptionsTable.guildId eq guild.longID}) {
+                                it[currency] = options.currency
+                            }
+                        } else {}
+
                     } catch (e: ExposedSQLException) { }
                 }
                 AdminOperation.ADD -> {
                     try {
-                        AdminRolesTable.batchInsert(roles, true) { roleId ->
+                        AdminRolesTable.batchInsert(options.roles, true) { role ->
                             this[AdminRolesTable.guildId] = guildIndex
-                            this[AdminRolesTable.roleId] = roleId
+                            this[AdminRolesTable.roleId] = role.longID
                         }
                     } catch (e: ExposedSQLException) { }
                 }
@@ -243,13 +248,21 @@ object LotteryDatabase {
         }
     }
 
-    fun getAdminOptions(guild: IGuild): Pair<OperationStatus, AdminOptions> {
-        var dbResult = Pair(OperationStatus.FAILED, AdminOptions())
+    fun getAdminOptions(guild: IGuild): Triple<OperationStatus, AdminOptions, MutableList<Long>> {
+        var dbResult = Triple(OperationStatus.FAILED, AdminOptions(), mutableListOf<Long>())
         transaction(db) {
-            val guildIndex = GuildOptionsTable.slice(GuildOptionsTable.id).select({ GuildOptionsTable.guildId eq guild.longID}).single()[GuildOptionsTable.id]
-            val roles = AdminRolesTable.slice(AdminRolesTable.roleId).select({ AdminRolesTable.guildId eq guildIndex})
+            val options: AdminOptions
+            val resultRow = GuildOptionsTable.slice(GuildOptionsTable.id,
+                    GuildOptionsTable.currency,
+                    GuildOptionsTable.ticketPrice).select({ GuildOptionsTable.guildId eq guild.longID}).single()
 
-//            dbResult = Pair(OperationStatus.COMPLETED, AdminOptions(roles = roles))
+            val guildIndex = resultRow[GuildOptionsTable.id]
+            options = AdminOptions(AdminOperation.GET, resultRow[GuildOptionsTable.currency], resultRow[GuildOptionsTable.ticketPrice])
+
+            val roles = mutableListOf<Long>()
+            AdminRolesTable.slice(AdminRolesTable.roleId).select({ AdminRolesTable.guildId eq guildIndex}).mapTo(roles) {it[AdminRolesTable.roleId]}
+
+            dbResult = Triple(OperationStatus.COMPLETED, options, roles)
             println("")
         }
 

@@ -4,6 +4,7 @@ import com.beust.klaxon.Klaxon
 import net.devthedevel.lotti.Lotti
 import net.devthedevel.lotti.db.LotteryDatabase
 import net.devthedevel.lotti.db.OperationStatus
+import net.devthedevel.lotti.json.UserConverter
 import net.devthedevel.lotti.utils.random
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent
 import sx.blah.discord.handle.obj.IChannel
@@ -254,7 +255,8 @@ sealed class Command constructor(val context: CommandContext) {
             //Catch json if its not a valid json string
             if (json != null ) {
                 try {
-                    options = Klaxon().parse<AdminOptions>(json).apply { this?.adminOperation = adminOp }
+                    val userConverter = UserConverter(context.guild)
+                    options = Klaxon().converter(userConverter.converter).parse<AdminOptions>(json).apply { this?.adminOperation = adminOp }
                 } catch (e: Exception) {}
             }
 
@@ -268,6 +270,9 @@ sealed class Command constructor(val context: CommandContext) {
                         withContent("Admin set")
                         send()
                     }
+                }
+                AdminOperation.GET -> {
+                    LotteryDatabase.getAdminOptions(context.guild)
                 }
                 else -> return InvalidCommand(context).execute()
             }
