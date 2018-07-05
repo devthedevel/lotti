@@ -1,4 +1,4 @@
-package net.devthedevel.lotti.commands
+package net.devthedevel.lotti.commands.admin
 
 import sx.blah.discord.handle.obj.IRole
 

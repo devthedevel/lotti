@@ -1,4 +1,4 @@
-package net.devthedevel.lotti.commands
+package net.devthedevel.lotti.commands.admin
 
 enum class AdminOperation(val opString: String) {
     SET("set"),

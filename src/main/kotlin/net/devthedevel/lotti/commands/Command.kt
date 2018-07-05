@@ -2,8 +2,12 @@ package net.devthedevel.lotti.commands
 
 import com.beust.klaxon.Klaxon
 import net.devthedevel.lotti.Lotti
+import net.devthedevel.lotti.commands.admin.AdminOperation
+import net.devthedevel.lotti.commands.admin.AdminOptions
+import net.devthedevel.lotti.commands.admin.AdminRequests
 import net.devthedevel.lotti.db.LotteryDatabase
 import net.devthedevel.lotti.db.OperationStatus
+import net.devthedevel.lotti.json.RoleConverter
 import net.devthedevel.lotti.json.UserConverter
 import net.devthedevel.lotti.utils.random
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent
@@ -218,8 +222,24 @@ sealed class Command constructor(val context: CommandContext) {
             const val COMMAND_NAME: String = "admin"
         }
 
+        private val subCommand: String? = if (context.arguments.isNotEmpty()) context.arguments.removeAt(0) else null
+
+        override fun execute() {
+            return when (subCommand) {
+                AdminConfigCommand.COMMAND_NAME -> AdminConfigCommand(context).execute()
+                AdminRequestsCommand.COMMAND_NAME -> AdminRequestsCommand(context).execute()
+                else -> InvalidCommand(context).execute()
+            }
+        }
+    }
+
+    class AdminConfigCommand(context: CommandContext): Command(context) {
+        companion object {
+            const val COMMAND_NAME: String = "config"
+        }
+
         private val json: String? = context.json
-        private val adminOp: AdminOperation = if (context.arguments.size == 1) AdminOperation.parseOperation(context.arguments[0]) else AdminOperation.GET
+        private val adminOp: AdminOperation = if (context.arguments.isNotEmpty()) AdminOperation.parseOperation(context.arguments[0]) else AdminOperation.GET
 
         override fun execute() {
             var options: AdminOptions? = null
@@ -227,13 +247,13 @@ sealed class Command constructor(val context: CommandContext) {
             //Catch json if its not a valid json string
             if (json != null ) {
                 try {
-                    val userConverter = UserConverter(context.guild)
+                    val userConverter = RoleConverter(context.guild)
                     options = Klaxon().converter(userConverter.converter).parse<AdminOptions>(json)
                 } catch (e: Exception) {}
             }
 
             when (adminOp) {
-                //Get the current guild's config
+            //Get the current guild's config
                 AdminOperation.GET -> {
                     val (op, _options, roles) = LotteryDatabase.getAdminOptions(context.guild)
 
@@ -251,7 +271,7 @@ sealed class Command constructor(val context: CommandContext) {
                         send()
                     }
                 }
-                //Update current guild's config
+            //Update current guild's config
                 AdminOperation.SET, AdminOperation.ADD -> {
                     if (options != null) {
                         LotteryDatabase.setAdminOptions(context.guild, context.channel, options, adminOp)
@@ -261,6 +281,59 @@ sealed class Command constructor(val context: CommandContext) {
                             withContent("Admin set")
                             send()
                         }
+                    }
+                }
+                else -> return InvalidCommand(context).execute()
+            }
+        }
+    }
+
+    class AdminRequestsCommand(context: CommandContext): Command(context) {
+        companion object {
+            const val COMMAND_NAME: String = "requests"
+        }
+
+        private val json: String? = context.json
+        private val adminOp: AdminOperation = if (context.arguments.isNotEmpty()) {
+            val arg0 = context.arguments.removeAt(0)
+            if (arg0 != "[]") {
+                AdminOperation.parseOperation(arg0)
+            }
+            AdminOperation.GET
+        } else AdminOperation.GET   //TODO Find a better way to do this
+
+        override fun execute() {
+            var requests: List<AdminRequests>? = listOf()
+
+            if (json != null) {
+                try {
+                    val converter = UserConverter(context.guild)
+                    requests = Klaxon().converter(converter.converter).parseArray("[$json]")
+                } catch (e: Exception) {}
+            }
+
+            when (adminOp) {
+                AdminOperation.GET -> {
+                    val (op, users) = LotteryDatabase.getTicketRequests(context.guild, context.channel, requests)
+
+                    MessageBuilder(Lotti.CLIENT).apply {
+                        withChannel(context.channel)
+                        when (op) {
+                            OperationStatus.COMPLETED -> {
+                                withContent(context.sender.mention(true) + "\n")
+                                users.forEach {
+                                    val username = it.user?.getNicknameForGuild(context.guild) ?: it.user?.getDisplayName(context.guild)
+                                    appendContent("- $username: ${it.tickets} requested tickets")
+                                }
+                            }
+                            else -> {}
+                        }
+                        send()
+                    }
+                }
+                AdminOperation.SET -> {
+                    if (requests != null && requests.isNotEmpty()) {
+                        print("")
                     }
                 }
                 else -> return InvalidCommand(context).execute()

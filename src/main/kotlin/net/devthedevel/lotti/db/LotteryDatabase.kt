@@ -1,8 +1,9 @@
 package net.devthedevel.lotti.db
 
 import net.devthedevel.lotti.Lotti
-import net.devthedevel.lotti.commands.AdminOperation
-import net.devthedevel.lotti.commands.AdminOptions
+import net.devthedevel.lotti.commands.admin.AdminOperation
+import net.devthedevel.lotti.commands.admin.AdminOptions
+import net.devthedevel.lotti.commands.admin.AdminRequests
 import net.devthedevel.lotti.db.dto.ChannelStatus
 import net.devthedevel.lotti.db.dto.DatabaseResult
 import net.devthedevel.lotti.db.tables.*
@@ -288,6 +289,32 @@ object LotteryDatabase {
 
             dbResult = Triple(OperationStatus.COMPLETED, options, roles)
             println("")
+        }
+
+        return dbResult
+    }
+
+    fun getTicketRequests(guild: IGuild, channel: IChannel, requests: List<AdminRequests>?): Pair<OperationStatus, List<AdminRequests>> {
+        var dbResult = Pair(OperationStatus.FAILED, listOf<AdminRequests>())
+        transaction(this.db) {
+            if (requests != null) {
+                if (requests.isEmpty()) {
+                    val guildId = GuildOptionsTable.slice(GuildOptionsTable.id).select({GuildOptionsTable.guildId eq guild.longID}).single()[GuildOptionsTable.id]
+                    val lottoId = LotteryTable.slice(LotteryTable.id).select({LotteryTable.guildIndex eq guildId}).single()[LotteryTable.id]
+
+                    val resultRow = LotteryTicketsTable.slice(LotteryTicketsTable.userId, LotteryTicketsTable.requested).select({LotteryTicketsTable.lottoIndex eq lottoId})
+
+                    val users = mutableListOf<AdminRequests>()
+
+                    resultRow.forEach {
+                        users.add(AdminRequests(guild.getUserByID(it[LotteryTicketsTable.userId]), it[LotteryTicketsTable.requested]))
+                    }
+
+                    dbResult = Pair(OperationStatus.COMPLETED, users)
+                }
+            } else {
+
+            }
         }
 
         return dbResult

@@ -3,26 +3,25 @@ package net.devthedevel.lotti.json
 import com.beust.klaxon.Converter
 import com.beust.klaxon.JsonValue
 import sx.blah.discord.handle.obj.IGuild
-import sx.blah.discord.handle.obj.IUser
+import sx.blah.discord.handle.obj.IRole
 
-class UserConverter(val guild: IGuild) {
+class RoleConverter(val guild: IGuild) {
     val converter = object : Converter {
         override fun canConvert(cls: Class<*>): Boolean {
-            return cls == IUser::class.java
+            return cls == IRole::class.java
         }
 
         override fun fromJson(jv: JsonValue): Any {
             val str = jv.string
             if (str != null) {
-                val users = guild.getUsersByName(str, true)
-                return users[0]
+                val roles = guild.getRolesByName(str)
+                return roles[0]
             }
             return jv
         }
 
         override fun toJson(value: Any): String {
-            return (value as IUser).name
+            return (value as IRole).name
         }
-
     }
 }
