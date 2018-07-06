@@ -33,7 +33,7 @@ class StatusCommand(context: CommandContext): Command(context) {
                         for (userTicket: Pair<Long, Int> in users) {
                             val user = context.guild.getUserByID(userTicket.first)
                             val userName = user.getNicknameForGuild(context.guild)?: user.getDisplayName(context.guild)
-                            appendContent("$userName: ${userTicket.second} tickets")
+                            appendContent("$userName: ${userTicket.second} tickets\n")
                         }
                     } else {
                         appendContent("Oh...no one wants to play $creatorName's game. Is it because they smell?")

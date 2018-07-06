@@ -213,7 +213,9 @@ object LotteryDatabase {
                 }
 
                 channelStatus.operationStatus = OperationStatus.COMPLETED
-            } catch (e: ExposedSQLException) { }
+            } catch (e: NoSuchElementException) {
+                channelStatus.operationStatus = OperationStatus.DOES_NOT_EXIST
+            }
         }
         return channelStatus
     }
