@@ -134,29 +134,25 @@ sealed class Command constructor(val context: CommandContext) {
         }
 
         override fun execute() {
-            val (op, result, _) = LotteryDatabase.getUsersInLotto(context.guild, context.channel)
+            val (op, result) = LotteryDatabase.getUsersInLotto(context.guild, context.channel)
 
-            @Suppress("UNCHECKED_CAST")
-            val lottoUsers: MutableList<Long> = result as MutableList<Long>
-
-            val winnerId = lottoUsers.random()
-
-            val winner = context.guild.getUserByID(winnerId)
-
-            LotteryDatabase.deleteLotto(context.guild, context.channel)
-
-            val messageBuilder = MessageBuilder(Lotti.CLIENT)
-            messageBuilder.withChannel(context.channel)
-            when (op) {
-                OperationStatus.COMPLETED -> {
-                    messageBuilder.withContent("Drawing winner...\n\n")
-                    messageBuilder.appendContent("And our winner is: ${winner.mention(true)}! Congrats!")
+            MessageBuilder(Lotti.CLIENT).apply {
+                withChannel(context.channel)
+                when (op) {
+                    OperationStatus.COMPLETED -> {
+                        if (result.isNotEmpty()) {
+                            val winner = context.guild.getUserByID(result.random())
+                            LotteryDatabase.deleteLotto(context.guild, context.channel)
+                            withContent("Drawing winner...\n\n")
+                            appendContent("And our winner is: ${winner.mention(true)}! Congrats!")
+                        } else {
+                            withContent("Huh, looks like no one has any approved tickets...")
+                        }
+                    }
+                    else -> return InvalidCommand(context).execute()
                 }
-                else -> {
-                    messageBuilder.withContent("Oh uh, something went wrong! ${context.sender.mention(true)}, this is probably your fault, just saying.")
-                }
+                send()
             }
-            messageBuilder.send()
         }
     }
 
@@ -228,6 +224,7 @@ sealed class Command constructor(val context: CommandContext) {
             return when (subCommand) {
                 AdminConfigCommand.COMMAND_NAME -> AdminConfigCommand(context).execute()
                 AdminRequestsCommand.COMMAND_NAME -> AdminRequestsCommand(context).execute()
+                AdminApproveCommand.COMMAND_NAME -> AdminApproveCommand(context).execute()
                 else -> InvalidCommand(context).execute()
             }
         }
@@ -352,6 +349,44 @@ sealed class Command constructor(val context: CommandContext) {
                     }
                 }
                 else -> return InvalidCommand(context).execute()
+            }
+        }
+    }
+
+    class AdminApproveCommand(context: CommandContext): Command(context) {
+        companion object {
+            const val COMMAND_NAME: String = "approve"
+        }
+
+        private val json: String? = context.json
+        private val approveAll = if (context.arguments.isNotEmpty()) {
+            "all" == context.arguments.removeAt(0)
+        } else false
+
+        override fun execute() {
+            if (approveAll) {
+                val op = LotteryDatabase.approveTickets(context.guild, context.channel, approveAll = approveAll)
+
+                when (op) {
+                    OperationStatus.COMPLETED -> {
+                        MessageBuilder(Lotti.CLIENT).apply {
+                            withChannel(context.channel)
+                            withContent("All tickets approved")
+                            send()
+                        }
+                    }
+                    else -> {
+                    }
+                }
+            } else {
+                var requests: List<AdminRequests>? = listOf()
+
+                if (json != null) {
+                    try {
+                        val converter = UserConverter(context.guild)
+                        requests = Klaxon().converter(converter.converter).parseArray("[$json]")
+                    } catch (e: Exception) {}
+                }
             }
         }
     }

@@ -143,25 +143,27 @@ object LotteryDatabase {
         return dbResult
     }
 
-    fun getUsersInLotto(guild: IGuild, channel: IChannel): DatabaseResult {
-        var dbResult = DatabaseResult()
+    fun getUsersInLotto(guild: IGuild, channel: IChannel): Pair<OperationStatus, List<Long>> {
+        var dbResult = Pair(OperationStatus.FAILED, listOf<Long>())
         transaction(db) {
             try {
-                val userTicketList: MutableList<Long> = mutableListOf()
+                val ticketList: MutableList<Long> = mutableListOf()
 
-                TransactionManager.current().exec("SELECT ut.user_id, ut.requested FROM usertickets AS ut WHERE ut.lotto_index = (SELECT lot.id FROM lottery AS lot WHERE lot.channel_id = ${channel.longID} AND lot.guild_index = (SELECT go.id FROM guildoptions AS go WHERE go.guild_id = ${guild.longID}))") {rs ->
+                val ticketTable = LotteryTicketsTable.tableName
+                val guildTable = GuildOptionsTable.tableName
+                val lotteryTable = LotteryTable.tableName
+                TransactionManager.current().exec("SELECT ut.user_id, ut.approved FROM $ticketTable AS ut " +
+                        "WHERE ut.approved > 0 AND ut.lotto_index = (SELECT lot.id FROM $lotteryTable AS lot WHERE lot.channel_id = ${channel.longID} AND lot.guild_index = " +
+                        "(SELECT go.id FROM $guildTable AS go WHERE go.guild_id = ${guild.longID}))") {rs ->
                     while (rs.next()) {
                         for (i: Int in 0 until rs.getInt(LotteryTicketsTable.requested.name)) {
-                            userTicketList.add(rs.getLong(LotteryTicketsTable.userId.name))
+                            ticketList.add(rs.getLong(LotteryTicketsTable.userId.name))
                         }
                     }
                 }
 
-                dbResult = DatabaseResult(operationStatus = OperationStatus.COMPLETED, result = userTicketList)
-            } catch (e: Exception) {
-                val cause: String? = e.cause?.message
-                println(cause)
-            }
+                dbResult = Pair(OperationStatus.COMPLETED, ticketList)
+            } catch (e: ExposedSQLException) { }
         }
 
         return dbResult
@@ -322,6 +324,31 @@ object LotteryDatabase {
             }
 
             dbResult = if (users.isEmpty()) Pair(OperationStatus.NO_RESULT, users) else Pair(OperationStatus.COMPLETED, users)
+        }
+
+        return dbResult
+    }
+
+    fun approveTickets(guild: IGuild, channel: IChannel, users: List<AdminRequests> = listOf(), approveAll: Boolean = false): OperationStatus {
+        var dbResult = OperationStatus.FAILED
+        transaction(this.db) {
+            val lottoIndex = LotteryTable.slice(LotteryTable.id).select {
+                (LotteryTable.channelId eq channel.longID) and
+                    (LotteryTable.guildIndex eq
+                            (GuildOptionsTable.slice(GuildOptionsTable.id).select({GuildOptionsTable.guildId eq guild.longID}).single()[GuildOptionsTable.id]))
+            }.single()[LotteryTable.id]
+
+            if (approveAll) {
+                LotteryTicketsTable.update({LotteryTicketsTable.lottoIndex eq lottoIndex}) {
+                    with(SqlExpressionBuilder) {
+                        it.update(LotteryTicketsTable.approved, LotteryTicketsTable.approved + LotteryTicketsTable.requested)
+                        it.update(LotteryTicketsTable.requested, QueryParameter(0, IntegerColumnType()))
+                    }
+                }
+                dbResult = OperationStatus.COMPLETED
+            } else {
+
+            }
         }
 
         return dbResult
