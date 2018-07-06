@@ -8,4 +8,5 @@ data class CommandContext(val guild: IGuild,
                           val channel: IChannel,
                           val sender: IUser,
                           val json: String? = null,
-                          val arguments: MutableList<String> = MutableList(size = 0, init = {_: Int -> ""}))
+                          val isAdmin: Boolean = false,
+                          val arguments: MutableList<String> = mutableListOf())

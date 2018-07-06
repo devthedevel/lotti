@@ -2,6 +2,7 @@ package net.devthedevel.lotti.commands
 
 import net.devthedevel.lotti.Lotti
 import net.devthedevel.lotti.commands.admin.AdminCommand
+import net.devthedevel.lotti.db.LotteryDatabase
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent
 import sx.blah.discord.handle.obj.IChannel
 import sx.blah.discord.handle.obj.IGuild
@@ -42,8 +43,14 @@ abstract class Command constructor(val context: CommandContext) {
                 if (sender.isBot || !prefix.equals(Lotti.COMMAND_PREFIX, true)) return null
             }
 
+            //Check if admin
+            val isAdmin = let {
+                val (_, _, adminRoles) = LotteryDatabase.getAdminOptions(guild)
+                adminRoles.intersect(sender.getRolesForGuild(guild)).isNotEmpty()
+            }
+
             //Command values
-            val context = CommandContext(guild, channel, sender, json, args)
+            val context = CommandContext(guild, channel, sender, json, isAdmin, args)
 
             //Return corresponding command, or null if we couldn't determine command
             return when (commandName) {
