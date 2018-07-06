@@ -296,6 +296,19 @@ object LotteryDatabase {
         return dbResult
     }
 
+    fun deleteAdminRoles(guild: IGuild, roles: List<Long>): OperationStatus {
+        var dbResult = OperationStatus.FAILED
+        transaction(this.db) {
+            if (roles.isNotEmpty()) {
+                AdminRolesTable.deleteWhere {
+                    (AdminRolesTable.guildId eq (GuildOptionsTable.slice(GuildOptionsTable.id).select({GuildOptionsTable.guildId eq guild.longID})).single()[GuildOptionsTable.id]) and (AdminRolesTable.roleId inList roles)
+                }
+                dbResult = OperationStatus.COMPLETED
+            }
+        }
+        return dbResult
+    }
+
     fun getTicketRequests(guild: IGuild, channel: IChannel, requests: List<AdminRequests>?): Pair<OperationStatus, List<AdminRequests>> {
         var dbResult = Pair(OperationStatus.FAILED, listOf<AdminRequests>())
         transaction(this.db) {

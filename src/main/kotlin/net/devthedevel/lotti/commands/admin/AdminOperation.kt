@@ -3,7 +3,7 @@ package net.devthedevel.lotti.commands.admin
 enum class AdminOperation(val opString: String) {
     SET("set"),
     ADD("add"),
-    REMOVE("remove"),
+    DELETE("del"),
     GET("get"),
     INVALID("");
 

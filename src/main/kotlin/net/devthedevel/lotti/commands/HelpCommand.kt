@@ -22,7 +22,7 @@ class HelpCommand(context: CommandContext): Command(context) {
             if (context.isAdmin) {
                 appendContent("\n")
                 appendContent("Admin commands:\n")
-                appendContent("**/lotti admin config [get | set | add] {\"currency\": Text, \"price\": Integer, \"roles\": [Text]}**      *View config. If parameter is set/add, will update the config based on JSON*\n")
+                appendContent("**/lotti admin config [get | set | add | del] {\"currency\": Text, \"price\": Integer, \"roles\": [Text]}**      *View config. If parameter is set/add, will update the config based on JSON*\n")
                 appendContent("**/lotti admin requests [{\"name\": Text}]**     *View ticket requests. If the JSON parameter is left out, will return all requested tickets for the lottery*\n")
                 appendContent("**/lotti admin approve [all]**       *Approve ticket requests. Currently can only approve all user's request tickets at once*\n")
             }

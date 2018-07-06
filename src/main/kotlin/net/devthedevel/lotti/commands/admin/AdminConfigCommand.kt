@@ -4,7 +4,6 @@ import com.beust.klaxon.Klaxon
 import net.devthedevel.lotti.Lotti
 import net.devthedevel.lotti.commands.Command
 import net.devthedevel.lotti.commands.CommandContext
-import net.devthedevel.lotti.commands.InvalidCommand
 import net.devthedevel.lotti.db.LotteryDatabase
 import net.devthedevel.lotti.db.OperationStatus
 import net.devthedevel.lotti.json.RoleConverter
@@ -29,38 +28,57 @@ class AdminConfigCommand(context: CommandContext): Command(context) {
             } catch (e: Exception) {}
         }
 
-        when (adminOp) {
-        //Get the current guild's config
-            AdminOperation.GET -> {
-                val (op, _options, roles) = LotteryDatabase.getAdminOptions(context.guild)
+        MessageBuilder(Lotti.CLIENT).apply {
+            withChannel(context.channel)
 
-                MessageBuilder(Lotti.CLIENT).apply {
-                    withChannel(context.channel)
-                    when (op) {
-                        OperationStatus.COMPLETED -> {
-                            withContent(context.sender.mention(true) + "\n")
-                            appendContent("Currency: ${_options.currency}, Price: ${_options.price}\n")
-                            appendContent("Admin Roles: \n")
-                            roles.forEach{appendContent("- $it \n")}
-                        }
-                        else -> {}
-                    }
-                    send()
-                }
-            }
-        //Update current guild's config
-            AdminOperation.SET, AdminOperation.ADD -> {
-                if (options != null) {
-                    LotteryDatabase.setAdminOptions(context.guild, context.channel, options, adminOp)
+            when (adminOp) {
+                //Get the current guild's config
+                AdminOperation.GET -> {
+                    val (op, _options, roles) = LotteryDatabase.getAdminOptions(context.guild)
 
                     MessageBuilder(Lotti.CLIENT).apply {
                         withChannel(context.channel)
-                        withContent("Admin set")
+                        when (op) {
+                            OperationStatus.COMPLETED -> {
+                                withContent(context.sender.mention(true) + "\n")
+                                appendContent("Currency: ${_options.currency}, Price: ${_options.price}\n")
+                                appendContent("Admin Roles: \n")
+                                roles.forEach{appendContent("- $it \n")}
+                            }
+                            else -> {}
+                        }
                         send()
                     }
                 }
+                //Delete an admin role
+                AdminOperation.DELETE -> {
+                    if (options != null) {
+                        val op = LotteryDatabase.deleteAdminRoles(context.guild, options.roles.mapNotNull { it.longID })
+
+                        when (op) {
+                            OperationStatus.COMPLETED -> {
+                                appendContent("Roles deleted")
+                            }
+                            else -> sendInvalidCommandMessage("Stay calm. I don't think that worked. Relax its not your fault. Just letting you know. Carry on.")
+                        }
+                    } else {
+                        sendInvalidCommandMessage("Excuse me. Hey. What are you removing? Nothing, that's what. Try again with some roles to remove please.")
+                    }
+                }
+                //Update current guild's config
+                AdminOperation.SET, AdminOperation.ADD -> {
+                    if (options != null) {
+                        LotteryDatabase.setAdminOptions(context.guild, context.channel, options, adminOp)
+
+                        MessageBuilder(Lotti.CLIENT).apply {
+                            withChannel(context.channel)
+                            withContent("Admin set")
+                            send()
+                        }
+                    }
+                }
+                else -> return sendInvalidCommandMessage()
             }
-            else -> return sendInvalidCommandMessage()
         }
     }
 }
