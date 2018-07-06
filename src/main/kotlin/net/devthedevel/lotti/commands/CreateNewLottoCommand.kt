@@ -16,7 +16,13 @@ class CreateNewLottoCommand(context: CommandContext): Command(context) {
         MessageBuilder(Lotti.CLIENT).apply {
             withChannel(context.channel)
             when (op) {
-                OperationStatus.COMPLETED -> withContent("Alrighty ${context.sender.mention(true)}, new lotto started!")
+                OperationStatus.COMPLETED -> {
+                    if (context.isAdmin) {
+                        withContent("Alrighty ${context.sender.mention(true)}, new lotto started!")
+                    } else {
+                        withContent("Yo ${context.sender.mention(true)}. Only admins can do this. You're not cool enough to be an admin. #nonadminproblems")
+                    }
+                }
                 OperationStatus.EXISTS -> withContent("Hmmm ${context.sender.mention(true)}, there's currently a lotto started!")
                 else -> return sendInvalidCommandMessage()
             }

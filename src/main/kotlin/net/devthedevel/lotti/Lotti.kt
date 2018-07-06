@@ -11,7 +11,7 @@ class Lotti {
 
         //Env vars
         val TOKEN = System.getenv("DISCORD_BOT_TOKEN")
-        val DATABASE_URL = System.getenv("DATABASE_URL_SSL")
+        val DATABASE_URL = System.getenv("DATABASE_URL_DEBUG")
 
         //Discord gateway client
         val CLIENT: IDiscordClient = ClientBuilder().withToken(TOKEN).build()

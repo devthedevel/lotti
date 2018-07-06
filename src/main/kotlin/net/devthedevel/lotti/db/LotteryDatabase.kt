@@ -9,6 +9,7 @@ import net.devthedevel.lotti.db.dto.DatabaseResult
 import net.devthedevel.lotti.db.dto.Lottery
 import net.devthedevel.lotti.db.dto.UserTickets
 import net.devthedevel.lotti.db.tables.*
+import org.eclipse.jetty.util.DateCache
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SchemaUtils.create
@@ -96,49 +97,52 @@ object LotteryDatabase {
         var dbResult = Triple(OperationStatus.FAILED, 0, numTickets)
         transaction(db) {
             try {
-                var lottoIndex = -1
+                //Get lottery index
+                val lottoIndex = LotteryTable.slice(LotteryTable.id).select {
+                    (LotteryTable.channelId eq channel.longID) and (LotteryTable.guildIndex eq (GuildOptionsTable.slice(GuildOptionsTable.id).select {
+                        (GuildOptionsTable.guildId eq guild.longID)
+                    }.single()[GuildOptionsTable.id]))
+                }.single()[LotteryTable.id]
+
                 var approved = 0
                 var requested = 0
                 try {
-                    val resultRow = TicketTable.slice(TicketTable.lottoIndex).select {
-                        (TicketTable.lottoIndex eq (LotteryTable.slice(LotteryTable.id).select {
-                            (LotteryTable.channelId eq channel.longID) and (LotteryTable.guildIndex eq (GuildOptionsTable.slice(GuildOptionsTable.id).select {
-                                (GuildOptionsTable.guildId eq guild.longID)}).single()[GuildOptionsTable.id])
-                        }).single()[LotteryTable.id])
-                    }.single()
+                    //Get existing approved/requested numbers
+                    val resultRow = TicketTable.slice(TicketTable.approved, TicketTable.requested).select {(TicketTable.lottoIndex eq lottoIndex) and (TicketTable.userId eq user.longID)}.single()
+                    approved = resultRow[TicketTable.approved]
+                    requested = resultRow[TicketTable.requested]
 
-                    lottoIndex = resultRow[TicketTable.lottoIndex]
-
-                    if (lottoIndex != -1) {
-                        LotteryTable.update({LotteryTable.id eq lottoIndex}) {
-                            with(SqlExpressionBuilder) {
-                                if (isAdmin) {
-                                    it.update(TicketTable.approved, TicketTable.approved + numTickets)
-                                    approved = resultRow[TicketTable.approved] + numTickets
-                                } else {
-                                    it.update(TicketTable.requested, TicketTable.requested + numTickets)
-                                    requested = resultRow[TicketTable.requested] + numTickets
-                                }
+                    //Update if existing
+                    TicketTable.update({(TicketTable.lottoIndex eq lottoIndex) and (TicketTable.userId eq user.longID)}) {
+                        with(SqlExpressionBuilder) {
+                            if (isAdmin) {
+                                it.update(TicketTable.approved, TicketTable.approved + numTickets)
+                                approved += numTickets
+                            } else {
+                                it.update(TicketTable.requested, TicketTable.requested + numTickets)
+                                requested += + numTickets
                             }
                         }
                     }
                 } catch (e: NoSuchElementException) {
+                    //Insert if not existing
                     TicketTable.insert {
                         it[TicketTable.lottoIndex] = lottoIndex
                         it[TicketTable.userId] = user.longID
                         if (isAdmin) {
                             it[TicketTable.approved] = numTickets
+                            it[TicketTable.requested] = 0
                             approved = numTickets
                         } else {
+                            it[TicketTable.approved] = 0
                             it[TicketTable.requested] = numTickets
                             requested = numTickets
                         }
                     }
-                    dbResult = Triple(OperationStatus.COMPLETED, approved, requested)
                 }
-
+                dbResult = Triple(OperationStatus.COMPLETED, approved, requested)
             } catch (e: Exception) {
-                print("")
+                println("")
             }
         }
         return dbResult
