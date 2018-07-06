@@ -21,7 +21,9 @@ class LottiEventHandler {
     fun onReady(event: ReadyEvent) {
         log.info { "Lotti ready!" }
 
-        Lotti.CLIENT.shards[0].changePresence(StatusType.ONLINE, ActivityType.PLAYING, "/lotti help. Playing the slots!")
+        Lotti.CLIENT.shards.forEach {
+            it.changePresence(StatusType.ONLINE, ActivityType.PLAYING, "/lotti help. Playing the slots!")
+        }
     }
 
     @EventSubscriber
