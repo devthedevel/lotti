@@ -6,6 +6,8 @@ import net.devthedevel.lotti.commands.admin.AdminOptions
 import net.devthedevel.lotti.commands.admin.AdminRequests
 import net.devthedevel.lotti.db.dto.ChannelStatus
 import net.devthedevel.lotti.db.dto.DatabaseResult
+import net.devthedevel.lotti.db.dto.Lottery
+import net.devthedevel.lotti.db.dto.UserTickets
 import net.devthedevel.lotti.db.tables.*
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.*
@@ -143,11 +145,11 @@ object LotteryDatabase {
         return dbResult
     }
 
-    fun getUsersInLotto(guild: IGuild, channel: IChannel): Pair<OperationStatus, List<Long>> {
-        var dbResult = Pair(OperationStatus.FAILED, listOf<Long>())
+    fun getApprovedTickets(guild: IGuild, channel: IChannel): Pair<OperationStatus, Lottery> {
+        var dbResult = Pair(OperationStatus.FAILED, Lottery())
         transaction(db) {
             try {
-                val ticketList: MutableList<Long> = mutableListOf()
+                val lottery = Lottery()
 
                 val ticketTable = TicketTable.tableName
                 val guildTable = GuildOptionsTable.tableName
@@ -156,13 +158,11 @@ object LotteryDatabase {
                         "WHERE ut.approved > 0 AND ut.lotto_index = (SELECT lot.id FROM $lotteryTable AS lot WHERE lot.channel_id = ${channel.longID} AND lot.guild_index = " +
                         "(SELECT go.id FROM $guildTable AS go WHERE go.guild_id = ${guild.longID}))") {rs ->
                     while (rs.next()) {
-                        for (i: Int in 0 until rs.getInt(TicketTable.requested.name)) {
-                            ticketList.add(rs.getLong(TicketTable.userId.name))
-                        }
+                        lottery.addUserTicket(rs.getLong(TicketTable.userId.name), rs.getInt(TicketTable.approved.name))
                     }
                 }
 
-                dbResult = Pair(OperationStatus.COMPLETED, ticketList)
+                dbResult = Pair(OperationStatus.COMPLETED, lottery)
             } catch (e: ExposedSQLException) { }
         }
 

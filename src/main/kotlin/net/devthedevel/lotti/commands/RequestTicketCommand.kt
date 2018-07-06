@@ -23,10 +23,7 @@ class RequestTicketCommand(context: CommandContext): Command(context) {
 
             //Check if numTickets is positive. Cannot buy 'negative' tickets
             if (numTickets > 0) {
-                val (_, _, adminRoles) = LotteryDatabase.getAdminOptions(context.guild)
-                val isAdmin = adminRoles.intersect(context.sender.getRolesForGuild(context.guild)).isNotEmpty()
-
-                val (op, approved, requested) = LotteryDatabase.userBuyTickets(context.guild, context.channel, context.sender, numTickets, isAdmin)
+                val (op, approved, requested) = LotteryDatabase.userBuyTickets(context.guild, context.channel, context.sender, numTickets, context.isAdmin)
 
                 when (op) {
                     OperationStatus.COMPLETED -> {

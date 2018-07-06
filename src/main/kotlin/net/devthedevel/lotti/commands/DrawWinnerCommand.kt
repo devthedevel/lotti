@@ -11,18 +11,21 @@ class DrawWinnerCommand(context: CommandContext): Command(context) {
         const val COMMAND_NAME: String = "draw"
     }
 
+    private val numOfWinners: Int = if (context.arguments.isNotEmpty()) context.arguments.removeAt(0).toInt() else 1
+
     override fun execute() {
-        val (op, result) = LotteryDatabase.getUsersInLotto(context.guild, context.channel)
+        val (op, result) = LotteryDatabase.getApprovedTickets(context.guild, context.channel)
 
         MessageBuilder(Lotti.CLIENT).apply {
             withChannel(context.channel)
             when (op) {
                 OperationStatus.COMPLETED -> {
-                    if (result.isNotEmpty()) {
-                        val winner = context.guild.getUserByID(result.random())
+                    if (result.userTicketList.isNotEmpty()) {
+                        withContent("Drawing $numOfWinners winners...\n\n")
+                        result.getWinners(numOfWinners).mapNotNull { context.guild.getUserByID(it) }.forEach {
+                            appendContent("- ${it.mention(true)}!")
+                        }
                         LotteryDatabase.deleteLotto(context.guild, context.channel)
-                        withContent("Drawing winner...\n\n")
-                        appendContent("And our winner is: ${winner.mention(true)}! Congrats!")
                     } else {
                         withContent("Huh, looks like no one has any approved tickets...")
                     }
