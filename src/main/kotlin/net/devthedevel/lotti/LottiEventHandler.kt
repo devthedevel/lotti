@@ -8,6 +8,9 @@ import sx.blah.discord.handle.impl.events.ReadyEvent
 import sx.blah.discord.handle.impl.events.guild.GuildCreateEvent
 import sx.blah.discord.handle.impl.events.guild.GuildLeaveEvent
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent
+import sx.blah.discord.handle.impl.obj.Presence
+import sx.blah.discord.handle.obj.ActivityType
+import sx.blah.discord.handle.obj.StatusType
 
 class LottiEventHandler {
 
@@ -17,6 +20,8 @@ class LottiEventHandler {
     @EventSubscriber
     fun onReady(event: ReadyEvent) {
         log.info { "Lotti ready!" }
+
+        Lotti.CLIENT.shards[0].changePresence(StatusType.ONLINE, ActivityType.PLAYING, "/lotti help. Playing the slots!")
     }
 
     @EventSubscriber
