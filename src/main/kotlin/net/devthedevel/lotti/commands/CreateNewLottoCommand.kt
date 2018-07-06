@@ -18,7 +18,7 @@ class CreateNewLottoCommand(context: CommandContext): Command(context) {
             when (op) {
                 OperationStatus.COMPLETED -> withContent("Alrighty ${context.sender.mention(true)}, new lotto started!")
                 OperationStatus.EXISTS -> withContent("Hmmm ${context.sender.mention(true)}, there's currently a lotto started!")
-                else -> return InvalidCommand(context).execute()
+                else -> return sendInvalidCommandMessage()
             }
             send()
         }

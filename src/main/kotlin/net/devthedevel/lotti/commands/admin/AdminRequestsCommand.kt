@@ -73,7 +73,7 @@ class AdminRequestsCommand(context: CommandContext): Command(context) {
                     print("")
                 }
             }
-            else -> return InvalidCommand(context).execute()
+            else -> return sendInvalidCommandMessage()
         }
     }
 }

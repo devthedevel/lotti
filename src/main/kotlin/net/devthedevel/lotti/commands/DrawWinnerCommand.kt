@@ -27,7 +27,7 @@ class DrawWinnerCommand(context: CommandContext): Command(context) {
                         withContent("Huh, looks like no one has any approved tickets...")
                     }
                 }
-                else -> return InvalidCommand(context).execute()
+                else -> return sendInvalidCommandMessage()
             }
             send()
         }

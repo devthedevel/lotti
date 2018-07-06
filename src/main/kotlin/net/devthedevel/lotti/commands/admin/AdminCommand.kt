@@ -16,7 +16,7 @@ class AdminCommand(context: CommandContext): Command(context) {
             AdminConfigCommand.COMMAND_NAME -> AdminConfigCommand(context).execute()
             AdminRequestsCommand.COMMAND_NAME -> AdminRequestsCommand(context).execute()
             AdminApproveCommand.COMMAND_NAME -> AdminApproveCommand(context).execute()
-            else -> InvalidCommand(context).execute()
+            else -> sendInvalidCommandMessage()
         }
     }
 }

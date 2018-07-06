@@ -60,7 +60,7 @@ class AdminConfigCommand(context: CommandContext): Command(context) {
                     }
                 }
             }
-            else -> return InvalidCommand(context).execute()
+            else -> return sendInvalidCommandMessage()
         }
     }
 }

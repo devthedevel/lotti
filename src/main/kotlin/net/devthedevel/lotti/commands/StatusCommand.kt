@@ -35,7 +35,7 @@ class StatusCommand(context: CommandContext): Command(context) {
                     }
                 }
                 OperationStatus.DOES_NOT_EXIST -> withContent("Hey ${context.sender.mention(true)}, I know you're eager to throw away money but there's no lottery started. Ask your leaders to start one.")
-                else -> return InvalidCommand(context).execute()
+                else -> return sendInvalidCommandMessage()
             }
             send()
         }

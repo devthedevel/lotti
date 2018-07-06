@@ -6,6 +6,7 @@ import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedE
 import sx.blah.discord.handle.obj.IChannel
 import sx.blah.discord.handle.obj.IGuild
 import sx.blah.discord.handle.obj.IUser
+import sx.blah.discord.util.MessageBuilder
 
 abstract class Command constructor(val context: CommandContext) {
 
@@ -61,4 +62,19 @@ abstract class Command constructor(val context: CommandContext) {
     Methods
     */
     abstract fun execute()
+
+    fun sendInvalidCommandMessage(msg: String? = null) {
+        MessageBuilder(Lotti.CLIENT).apply {
+            withChannel(context.channel)
+            withContent(context.sender.mention(true) + "\n")
+            appendContent("Seems like you made an invalid command.\n")
+
+            if (msg.isNullOrEmpty()) {
+                appendContent("Have you made a typo? If you're feeling lost, try the help command")
+            } else {
+                appendContent(msg)
+            }
+            send()
+        }
+    }
 }
