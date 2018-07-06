@@ -45,13 +45,13 @@ abstract class Command constructor(val context: CommandContext) {
             val context = CommandContext(guild, channel, sender, json, args)
 
             //Return corresponding command, or null if we couldn't determine command
-            return when {
-                CreateNewLottoCommand.COMMAND_NAME == commandName -> CreateNewLottoCommand(context)
-                UserRequestTicketCommand.COMMAND_NAME == commandName -> UserRequestTicketCommand(context)
-                DrawWinnerCommand.COMMAND_NAME == commandName -> DrawWinnerCommand(context)
-                HelpCommand.COMMAND_NAME == commandName -> HelpCommand(context)
-                StatusCommand.COMMAND_NAME == commandName -> StatusCommand(context)
-                AdminCommand.COMMAND_NAME == commandName -> AdminCommand(context)
+            return when (commandName) {
+                CreateNewLottoCommand.COMMAND_NAME -> CreateNewLottoCommand(context)
+                RequestTicketCommand.COMMAND_NAME -> RequestTicketCommand(context)
+                DrawWinnerCommand.COMMAND_NAME -> DrawWinnerCommand(context)
+                HelpCommand.COMMAND_NAME -> HelpCommand(context)
+                StatusCommand.COMMAND_NAME -> StatusCommand(context)
+                AdminCommand.COMMAND_NAME -> AdminCommand(context)
                 else -> InvalidCommand(context)
             }
         }

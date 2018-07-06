@@ -4,6 +4,7 @@ import com.beust.klaxon.Klaxon
 import net.devthedevel.lotti.Lotti
 import net.devthedevel.lotti.commands.Command
 import net.devthedevel.lotti.commands.CommandContext
+import net.devthedevel.lotti.commands.InvalidCommand
 import net.devthedevel.lotti.db.LotteryDatabase
 import net.devthedevel.lotti.db.OperationStatus
 import net.devthedevel.lotti.json.UserConverter
