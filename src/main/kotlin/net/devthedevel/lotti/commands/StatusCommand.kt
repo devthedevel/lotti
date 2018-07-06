@@ -21,17 +21,22 @@ class StatusCommand(context: CommandContext): Command(context) {
 
         MessageBuilder(Lotti.CLIENT).apply {
             withChannel(context.channel)
+            withContent(context.sender.mention(true) + "\n")
             when (result) {
                 OperationStatus.COMPLETED -> {
                     val creatorUser = context.guild.getUserByID(creatorId ?: 0)
                     val creatorName = creatorUser.getNicknameForGuild(context.guild)?: creatorUser.getDisplayName(context.guild)
-                    withContent("Here's this channel's lottery status:\n\n")
+                    appendContent("Here's this channel's lottery status:\n\n")
                     appendContent("Creator: $creatorName, Currency: $currencyName, Ticket Price: $ticketPrice\n")
-                    appendContent("People entered:\n")
-                    for (userTicket: Pair<Long, Int> in users) {
-                        val user = context.guild.getUserByID(userTicket.first)
-                        val userName = user.getNicknameForGuild(context.guild)?: user.getDisplayName(context.guild)
-                        appendContent("$userName: ${userTicket.second} requested")
+                    if (users.isNotEmpty()) {
+                        appendContent("People entered:\n")
+                        for (userTicket: Pair<Long, Int> in users) {
+                            val user = context.guild.getUserByID(userTicket.first)
+                            val userName = user.getNicknameForGuild(context.guild)?: user.getDisplayName(context.guild)
+                            appendContent("$userName: ${userTicket.second} tickets")
+                        }
+                    } else {
+                        appendContent("Oh...no one wants to play $creatorName's game. Is it because they smell?")
                     }
                 }
                 OperationStatus.DOES_NOT_EXIST -> withContent("Hey ${context.sender.mention(true)}, I know you're eager to throw away money but there's no lottery started. Ask your leaders to start one.")

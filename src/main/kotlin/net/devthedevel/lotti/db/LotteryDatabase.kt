@@ -15,6 +15,7 @@ import org.jetbrains.exposed.sql.SchemaUtils.create
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.postgresql.util.PSQLException
+import sun.security.krb5.internal.Ticket
 import sx.blah.discord.handle.obj.IChannel
 import sx.blah.discord.handle.obj.IGuild
 import sx.blah.discord.handle.obj.IRole
@@ -105,6 +106,7 @@ object LotteryDatabase {
                 val lotteryTable = LotteryTable.tableName
                 val guildTable = GuildOptionsTable.tableName
 
+                //TODO update SQL, and check if the row exists first. Currently if the row does not exist, and user is admin, it will insert into requested not approved
                 val sb = StringBuilder().apply {
                     append("INSERT INTO $ticketTable ($lottoIndex, $userId, $approved, $requested) VALUES ")
                     append("((SELECT lot.id FROM $lotteryTable AS lot WHERE lot.channel_id = ${channel.longID} AND lot.guild_index = (SELECT go.id FROM $guildTable AS go WHERE go.guild_id = ${guild.longID})),")
@@ -123,6 +125,8 @@ object LotteryDatabase {
                 TransactionManager.current().exec(sb.toString()) {rs ->
                     if (rs.next()) { }
                 }
+
+                commit()
 
                 TransactionManager.current().exec(
                         "SELECT ut.approved, ut.requested FROM $ticketTable AS ut WHERE ut.user_id = ${user.longID} " +
@@ -191,37 +195,27 @@ object LotteryDatabase {
         val channelStatus = ChannelStatus()
         transaction(db) {
             try {
-                TransactionManager.current().exec("SELECT go.ticket_price, go.currency, lot.creator_id, ut.user_id, ut.requested FROM guildoptions AS go" +
-                        "  LEFT JOIN currencynames AS cn on go.currency_index = cn.id" +
-                        "  LEFT JOIN usertickets AS ut on lot.id = ut.lotto_index" +
-                        "  WHERE go.guild_id = ${guild.longID} AND lot.channel_id = ${channel.longID}") {rs ->
-                    var lottoExists = false
-                    if (rs.next()) {
-                        val creatorId = rs.getLong(LotteryTable.creator.name)
-                        val currencyName = rs.getString(GuildOptionsTable.currency.name)
-                        val ticketPrice = rs.getInt(GuildOptionsTable.ticketPrice.name)
-                        val userTickets = Pair(rs.getLong(TicketTable.userId.name), rs.getInt(TicketTable.requested.name))
+                val resultRow = (GuildOptionsTable leftJoin LotteryTable)
+                        .slice(GuildOptionsTable.ticketPrice, GuildOptionsTable.currency, LotteryTable.creator, LotteryTable.id)
+                        .select {
+                            (GuildOptionsTable.guildId eq guild.longID) and (GuildOptionsTable.id eq LotteryTable.guildIndex) and (LotteryTable.channelId eq channel.longID)
+                        }.single()
 
-                        channelStatus.creatorId = creatorId
-                        channelStatus.currencyName = currencyName
-                        channelStatus.ticketPrice = ticketPrice
+                channelStatus.creatorId = resultRow[LotteryTable.creator]
+                channelStatus.currencyName = resultRow[GuildOptionsTable.currency]
+                channelStatus.ticketPrice = resultRow[GuildOptionsTable.ticketPrice]
+                val lottoIndex = resultRow[LotteryTable.id]
 
-                        if (userTickets.first != 0L && userTickets.second != 0) {
-                            channelStatus.userTickets.add(userTickets)
-                        }
-                        lottoExists = true
+                TicketTable.slice(TicketTable.userId, TicketTable.approved).select { TicketTable.lottoIndex eq lottoIndex }.forEach {
+                    val userTickets = Pair(it[TicketTable.userId], it[TicketTable.approved])
+                    if (userTickets.first != 0L && userTickets.second != 0) {
+                        channelStatus.userTickets.add(userTickets)
                     }
-                    while (rs.next()) {
-                        channelStatus.userTickets.add(Pair(rs.getLong(TicketTable.userId.name), rs.getInt(TicketTable.requested.name)))
-                    }
-                    channelStatus.operationStatus = if (lottoExists) OperationStatus.COMPLETED else OperationStatus.DOES_NOT_EXIST
                 }
-            } catch (e: Exception) {
-                val cause: String? = e.cause?.message
-                println(cause)
-            }
-        }
 
+                channelStatus.operationStatus = OperationStatus.COMPLETED
+            } catch (e: ExposedSQLException) { }
+        }
         return channelStatus
     }
 
