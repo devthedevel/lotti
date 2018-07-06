@@ -25,7 +25,7 @@ object LotteryDatabase {
 
     fun initTables() {
         transaction(db) {
-            create (GuildOptionsTable, AdminRolesTable, LotteryTable, LotteryTicketsTable)
+            create (GuildOptionsTable, AdminRolesTable, LotteryTable, TicketTable)
         }
     }
 
@@ -94,11 +94,11 @@ object LotteryDatabase {
         transaction(db) {
             try {
                 //TODO Figure out how to do the following statement in Exposed
-                val ticketTable = LotteryTicketsTable.tableName
-                val lottoIndex = LotteryTicketsTable.lottoIndex.name
-                val userId = LotteryTicketsTable.userId.name
-                val approved = LotteryTicketsTable.approved.name
-                val requested = LotteryTicketsTable.requested.name
+                val ticketTable = TicketTable.tableName
+                val lottoIndex = TicketTable.lottoIndex.name
+                val userId = TicketTable.userId.name
+                val approved = TicketTable.approved.name
+                val requested = TicketTable.requested.name
 
                 val lotteryTable = LotteryTable.tableName
                 val guildTable = GuildOptionsTable.tableName
@@ -127,7 +127,7 @@ object LotteryDatabase {
                                 "AND ut.lotto_index = (SELECT lot.id FROM $lotteryTable AS lot WHERE lot.channel_id = ${channel.longID} " +
                                 "AND lot.guild_index = (SELECT go.id FROM $guildTable AS go WHERE go.guild_id = ${guild.longID}))") {rs ->
                     if (rs.next()) {
-                        dbResult = Triple(OperationStatus.COMPLETED, rs.getInt(LotteryTicketsTable.approved.name), rs.getInt(LotteryTicketsTable.requested.name))
+                        dbResult = Triple(OperationStatus.COMPLETED, rs.getInt(TicketTable.approved.name), rs.getInt(TicketTable.requested.name))
                     }
                 }
 
@@ -149,15 +149,15 @@ object LotteryDatabase {
             try {
                 val ticketList: MutableList<Long> = mutableListOf()
 
-                val ticketTable = LotteryTicketsTable.tableName
+                val ticketTable = TicketTable.tableName
                 val guildTable = GuildOptionsTable.tableName
                 val lotteryTable = LotteryTable.tableName
                 TransactionManager.current().exec("SELECT ut.user_id, ut.approved FROM $ticketTable AS ut " +
                         "WHERE ut.approved > 0 AND ut.lotto_index = (SELECT lot.id FROM $lotteryTable AS lot WHERE lot.channel_id = ${channel.longID} AND lot.guild_index = " +
                         "(SELECT go.id FROM $guildTable AS go WHERE go.guild_id = ${guild.longID}))") {rs ->
                     while (rs.next()) {
-                        for (i: Int in 0 until rs.getInt(LotteryTicketsTable.requested.name)) {
-                            ticketList.add(rs.getLong(LotteryTicketsTable.userId.name))
+                        for (i: Int in 0 until rs.getInt(TicketTable.requested.name)) {
+                            ticketList.add(rs.getLong(TicketTable.userId.name))
                         }
                     }
                 }
@@ -200,7 +200,7 @@ object LotteryDatabase {
                         val creatorId = rs.getLong(LotteryTable.creator.name)
                         val currencyName = rs.getString(GuildOptionsTable.currency.name)
                         val ticketPrice = rs.getInt(GuildOptionsTable.ticketPrice.name)
-                        val userTickets = Pair(rs.getLong(LotteryTicketsTable.userId.name), rs.getInt(LotteryTicketsTable.requested.name))
+                        val userTickets = Pair(rs.getLong(TicketTable.userId.name), rs.getInt(TicketTable.requested.name))
 
                         channelStatus.creatorId = creatorId
                         channelStatus.currencyName = currencyName
@@ -212,7 +212,7 @@ object LotteryDatabase {
                         lottoExists = true
                     }
                     while (rs.next()) {
-                        channelStatus.userTickets.add(Pair(rs.getLong(LotteryTicketsTable.userId.name), rs.getInt(LotteryTicketsTable.requested.name)))
+                        channelStatus.userTickets.add(Pair(rs.getLong(TicketTable.userId.name), rs.getInt(TicketTable.requested.name)))
                     }
                     channelStatus.operationStatus = if (lottoExists) OperationStatus.COMPLETED else OperationStatus.DOES_NOT_EXIST
                 }
@@ -311,16 +311,16 @@ object LotteryDatabase {
             query = if (requests?.isNotEmpty() == true) {
                 val userIds = mutableListOf<Long>()
                 requests.mapNotNullTo(userIds) {it.user?.longID}
-                LotteryTicketsTable.slice(LotteryTicketsTable.userId, LotteryTicketsTable.requested).select{
-                    (LotteryTicketsTable.lottoIndex eq lottoId) and (LotteryTicketsTable.userId inList userIds)}
+                TicketTable.slice(TicketTable.userId, TicketTable.requested).select{
+                    (TicketTable.lottoIndex eq lottoId) and (TicketTable.userId inList userIds)}
             } else {
-                LotteryTicketsTable.slice(LotteryTicketsTable.userId, LotteryTicketsTable.requested).select({LotteryTicketsTable.lottoIndex eq lottoId})
+                TicketTable.slice(TicketTable.userId, TicketTable.requested).select({TicketTable.lottoIndex eq lottoId})
             }
 
             query.forEach {
-                val requested = it[LotteryTicketsTable.requested]
+                val requested = it[TicketTable.requested]
                 //Ignore users that have no requested tickets
-                if (requested != 0) { users.add(AdminRequests(guild.getUserByID(it[LotteryTicketsTable.userId]), requested)) }
+                if (requested != 0) { users.add(AdminRequests(guild.getUserByID(it[TicketTable.userId]), requested)) }
             }
 
             dbResult = if (users.isEmpty()) Pair(OperationStatus.NO_RESULT, users) else Pair(OperationStatus.COMPLETED, users)
@@ -339,10 +339,10 @@ object LotteryDatabase {
             }.single()[LotteryTable.id]
 
             if (approveAll) {
-                LotteryTicketsTable.update({LotteryTicketsTable.lottoIndex eq lottoIndex}) {
+                TicketTable.update({TicketTable.lottoIndex eq lottoIndex}) {
                     with(SqlExpressionBuilder) {
-                        it.update(LotteryTicketsTable.approved, LotteryTicketsTable.approved + LotteryTicketsTable.requested)
-                        it.update(LotteryTicketsTable.requested, QueryParameter(0, IntegerColumnType()))
+                        it.update(TicketTable.approved, TicketTable.approved + TicketTable.requested)
+                        it.update(TicketTable.requested, QueryParameter(0, IntegerColumnType()))
                     }
                 }
                 dbResult = OperationStatus.COMPLETED
