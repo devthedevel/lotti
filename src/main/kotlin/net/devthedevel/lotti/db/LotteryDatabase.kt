@@ -96,54 +96,49 @@ object LotteryDatabase {
         var dbResult = Triple(OperationStatus.FAILED, 0, numTickets)
         transaction(db) {
             try {
-                //TODO Figure out how to do the following statement in Exposed
-                val ticketTable = TicketTable.tableName
-                val lottoIndex = TicketTable.lottoIndex.name
-                val userId = TicketTable.userId.name
-                val approved = TicketTable.approved.name
-                val requested = TicketTable.requested.name
+                var lottoIndex = -1
+                var approved = 0
+                var requested = 0
+                try {
+                    val resultRow = TicketTable.slice(TicketTable.lottoIndex).select {
+                        (TicketTable.lottoIndex eq (LotteryTable.slice(LotteryTable.id).select {
+                            (LotteryTable.channelId eq channel.longID) and (LotteryTable.guildIndex eq (GuildOptionsTable.slice(GuildOptionsTable.id).select {
+                                (GuildOptionsTable.guildId eq guild.longID)}).single()[GuildOptionsTable.id])
+                        }).single()[LotteryTable.id])
+                    }.single()
 
-                val lotteryTable = LotteryTable.tableName
-                val guildTable = GuildOptionsTable.tableName
+                    lottoIndex = resultRow[TicketTable.lottoIndex]
 
-                //TODO update SQL, and check if the row exists first. Currently if the row does not exist, and user is admin, it will insert into requested not approved
-                val sb = StringBuilder().apply {
-                    append("INSERT INTO $ticketTable ($lottoIndex, $userId, $approved, $requested) VALUES ")
-                    append("((SELECT lot.id FROM $lotteryTable AS lot WHERE lot.channel_id = ${channel.longID} AND lot.guild_index = (SELECT go.id FROM $guildTable AS go WHERE go.guild_id = ${guild.longID})),")
-                    append("${user.longID}, ")
-                    append("0, ")
-                    append("$numTickets) ON CONFLICT ON CONSTRAINT pk_$ticketTable DO UPDATE SET ")
-
-                    //Directly approve admin tickets
-                    if (isAdmin) {
-                        append("approved = $ticketTable.approved + EXCLUDED.requested")
-                    } else {
-                        append("requested = $ticketTable.requested + EXCLUDED.requested")
+                    if (lottoIndex != -1) {
+                        LotteryTable.update({LotteryTable.id eq lottoIndex}) {
+                            with(SqlExpressionBuilder) {
+                                if (isAdmin) {
+                                    it.update(TicketTable.approved, TicketTable.approved + numTickets)
+                                    approved = resultRow[TicketTable.approved] + numTickets
+                                } else {
+                                    it.update(TicketTable.requested, TicketTable.requested + numTickets)
+                                    requested = resultRow[TicketTable.requested] + numTickets
+                                }
+                            }
+                        }
                     }
-                }
-
-                TransactionManager.current().exec(sb.toString()) {rs ->
-                    if (rs.next()) { }
-                }
-
-                commit()
-
-                TransactionManager.current().exec(
-                        "SELECT ut.approved, ut.requested FROM $ticketTable AS ut WHERE ut.user_id = ${user.longID} " +
-                                "AND ut.lotto_index = (SELECT lot.id FROM $lotteryTable AS lot WHERE lot.channel_id = ${channel.longID} " +
-                                "AND lot.guild_index = (SELECT go.id FROM $guildTable AS go WHERE go.guild_id = ${guild.longID}))") {rs ->
-                    if (rs.next()) {
-                        dbResult = Triple(OperationStatus.COMPLETED, rs.getInt(TicketTable.approved.name), rs.getInt(TicketTable.requested.name))
+                } catch (e: NoSuchElementException) {
+                    TicketTable.insert {
+                        it[TicketTable.lottoIndex] = lottoIndex
+                        it[TicketTable.userId] = user.longID
+                        if (isAdmin) {
+                            it[TicketTable.approved] = numTickets
+                            approved = numTickets
+                        } else {
+                            it[TicketTable.requested] = numTickets
+                            requested = numTickets
+                        }
                     }
+                    dbResult = Triple(OperationStatus.COMPLETED, approved, requested)
                 }
 
             } catch (e: Exception) {
-                val cause: String? = e.cause?.message
-                dbResult = if (cause?.contains("is not present in table") ?: false) {
-                    Triple(OperationStatus.DOES_NOT_EXIST, 0, 0)
-                } else {
-                    dbResult
-                }
+                print("")
             }
         }
         return dbResult
