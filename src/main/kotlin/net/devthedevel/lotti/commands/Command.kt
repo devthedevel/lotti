@@ -46,7 +46,7 @@ abstract class Command constructor(val context: CommandContext) {
             //Check if admin
             val isAdmin = let {
                 val (_, _, adminRoles) = LotteryDatabase.getAdminOptions(guild)
-                adminRoles.intersect(sender.getRolesForGuild(guild)).isNotEmpty()
+                guild.owner == sender || adminRoles.intersect(sender.getRolesForGuild(guild)).isNotEmpty()
             }
 
             //Command values
