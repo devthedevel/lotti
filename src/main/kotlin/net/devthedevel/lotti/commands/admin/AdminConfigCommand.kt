@@ -59,10 +59,10 @@ class AdminConfigCommand(context: CommandContext): Command(context) {
                             OperationStatus.COMPLETED -> {
                                 appendContent("Roles deleted")
                             }
-                            else -> sendInvalidCommandMessage("Stay calm. I don't think that worked. Relax its not your fault. Just letting you know. Carry on.")
+                            else -> sendInvalidCommandMessage(true, "Stay calm. I don't think that worked. Relax its not your fault. Just letting you know. Carry on.")
                         }
                     } else {
-                        sendInvalidCommandMessage("Excuse me. Hey. What are you removing? Nothing, that's what. Try again with some roles to remove please.")
+                        sendInvalidCommandMessage(true, "Excuse me. Hey. What are you removing? Nothing, that's what. Try again with some roles to remove please.")
                     }
                 }
                 //Update current guild's config

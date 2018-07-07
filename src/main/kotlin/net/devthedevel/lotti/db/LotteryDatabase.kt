@@ -165,7 +165,11 @@ object LotteryDatabase {
                     }
                 }
 
-                dbResult = Pair(OperationStatus.COMPLETED, lottery)
+                dbResult = if (lottery.userTicketList.isEmpty()) {
+                    Pair(OperationStatus.DOES_NOT_EXIST, lottery)
+                } else {
+                    Pair(OperationStatus.COMPLETED, lottery)
+                }
             } catch (e: ExposedSQLException) { }
         }
 

@@ -70,11 +70,16 @@ abstract class Command constructor(val context: CommandContext) {
     */
     abstract fun execute()
 
-    fun sendInvalidCommandMessage(msg: String? = null) {
+    fun sendInvalidCommandMessage(mention: Boolean = false, msg: String? = null) {
         MessageBuilder(Lotti.CLIENT).apply {
             withChannel(context.channel)
-            withContent(context.sender.mention(true) + "\n")
-            appendContent("Seems like you made an invalid command.\n")
+
+            if (mention) {
+                withContent(context.sender.mention(true) + "\n")
+                appendContent("Seems like you made an invalid command.\n")
+            } else {
+                withContent("Seems like you made an invalid command.\n")
+            }
 
             if (msg.isNullOrEmpty()) {
                 appendContent("Have you made a typo? If you're feeling lost, try the help command")

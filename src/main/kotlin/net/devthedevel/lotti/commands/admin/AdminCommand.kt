@@ -20,7 +20,7 @@ class AdminCommand(context: CommandContext): Command(context) {
                 else -> sendInvalidCommandMessage()
             }
         } else {
-            sendInvalidCommandMessage("Wait a second....you're not an admin! I will not execute this command now. Sorry (not sorry).")
+            sendInvalidCommandMessage(true, "Wait a second....you're not an admin! I will not execute this command now. Sorry (not sorry).")
         }
     }
 }
