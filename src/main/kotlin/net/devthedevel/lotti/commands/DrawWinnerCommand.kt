@@ -3,7 +3,6 @@ package net.devthedevel.lotti.commands
 import net.devthedevel.lotti.Lotti
 import net.devthedevel.lotti.db.LotteryDatabase
 import net.devthedevel.lotti.db.OperationStatus
-import net.devthedevel.lotti.utils.random
 import sx.blah.discord.util.MessageBuilder
 
 class DrawWinnerCommand(context: CommandContext): Command(context) {
@@ -37,9 +36,10 @@ class DrawWinnerCommand(context: CommandContext): Command(context) {
                 when (op) {
                     OperationStatus.COMPLETED -> {
                         if (result.userTicketList.isNotEmpty()) {
-                            appendContent("Drawing $numOfWinners winners...\n\n")
-                            result.getWinners(numOfWinners).mapNotNull { context.guild.getUserByID(it) }.forEach {
-                                appendContent("- ${it.mention(true)}!")
+                            val boundedNumOfWinners = if (numOfWinners > result.userTicketList.size) result.userTicketList.size else numOfWinners
+                            appendContent("Drawing $boundedNumOfWinners winners...\n\n")
+                            result.getWinners(boundedNumOfWinners).mapNotNull { context.guild.getUserByID(it) }.forEach {
+                                appendContent("- ${it.mention(true)}!\n")
                             }
                             LotteryDatabase.deleteLotto(context.guild, context.channel)
                         } else {
