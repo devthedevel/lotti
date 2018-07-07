@@ -13,15 +13,8 @@ class DrawWinnerCommand(context: CommandContext): Command(context) {
     private var numOfWinners: Int = 1
 
     init {
-        val arg: String
         if (context.arguments.isNotEmpty()) {
-            try {
-                arg = context.arguments.removeAt(0)
-                val num = arg.toDouble().toInt()
-                numOfWinners = if (num > 0) num else 1
-            } catch (e: NumberFormatException) {
-                sendInvalidCommandMessage(false, "Defaulting to one winner.." )
-            }
+            numOfWinners = parseToInt(context.arguments.removeAt(0), 0, sendInvalidMessage = true, invalidMessage = "Defaulting to one winner...") ?: 1
         }
     }
 

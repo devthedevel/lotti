@@ -1,5 +1,6 @@
 package net.devthedevel.lotti.commands
 
+import com.sun.org.apache.xpath.internal.operations.Bool
 import net.devthedevel.lotti.Lotti
 import net.devthedevel.lotti.commands.admin.AdminCommand
 import net.devthedevel.lotti.db.LotteryDatabase
@@ -88,5 +89,21 @@ abstract class Command constructor(val context: CommandContext) {
             }
             send()
         }
+    }
+
+    fun parseToInt(str: String, lower: Int = Int.MIN_VALUE, higher: Int = Int.MAX_VALUE, sendInvalidMessage: Boolean = false, invalidMessage: String? = null): Int? {
+        var ret: Int? = null
+        if (str.isNotEmpty()) {
+            try {
+                val num = str.toDouble().toInt()
+                ret = if (num < lower) lower else num
+                ret = if (num > higher) higher else num
+            } catch (e: NumberFormatException) {
+                if (sendInvalidMessage) {
+                    sendInvalidCommandMessage(false, invalidMessage)
+                }
+            }
+        }
+        return ret
     }
 }

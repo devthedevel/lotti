@@ -9,7 +9,9 @@ class RequestTicketCommand(context: CommandContext): Command(context) {
     var numTickets: Int = 0
 
     init {
-        if (context.arguments.isNotEmpty()) numTickets = context.arguments[0].toInt()
+        if (context.arguments.isNotEmpty()) {
+            numTickets = parseToInt(context.arguments.removeAt(0), 0) ?: 0
+        }
     }
 
     companion object {
