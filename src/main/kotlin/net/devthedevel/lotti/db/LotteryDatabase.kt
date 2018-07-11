@@ -7,16 +7,16 @@ import net.devthedevel.lotti.commands.admin.AdminRequests
 import net.devthedevel.lotti.db.dto.ChannelStatus
 import net.devthedevel.lotti.db.dto.DatabaseResult
 import net.devthedevel.lotti.db.dto.Lottery
-import net.devthedevel.lotti.db.dto.UserTickets
-import net.devthedevel.lotti.db.tables.*
-import org.eclipse.jetty.util.DateCache
+import net.devthedevel.lotti.db.tables.AdminRolesTable
+import net.devthedevel.lotti.db.tables.GuildOptionsTable
+import net.devthedevel.lotti.db.tables.LotteryTable
+import net.devthedevel.lotti.db.tables.TicketTable
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SchemaUtils.create
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.postgresql.util.PSQLException
-import sun.security.krb5.internal.Ticket
 import sx.blah.discord.handle.obj.IChannel
 import sx.blah.discord.handle.obj.IGuild
 import sx.blah.discord.handle.obj.IRole
@@ -344,22 +344,37 @@ object LotteryDatabase {
     fun approveTickets(guild: IGuild, channel: IChannel, users: List<AdminRequests> = listOf(), approveAll: Boolean = false): OperationStatus {
         var dbResult = OperationStatus.FAILED
         transaction(this.db) {
-            val lottoIndex = LotteryTable.slice(LotteryTable.id).select {
-                (LotteryTable.channelId eq channel.longID) and
-                    (LotteryTable.guildIndex eq
-                            (GuildOptionsTable.slice(GuildOptionsTable.id).select({GuildOptionsTable.guildId eq guild.longID}).single()[GuildOptionsTable.id]))
-            }.single()[LotteryTable.id]
+            try {
+                val lottoIndex = LotteryTable.slice(LotteryTable.id).select {
+                    (LotteryTable.channelId eq channel.longID) and
+                            (LotteryTable.guildIndex eq
+                                    (GuildOptionsTable.slice(GuildOptionsTable.id).select({GuildOptionsTable.guildId eq guild.longID}).single()[GuildOptionsTable.id]))
+                }.single()[LotteryTable.id]
 
-            if (approveAll) {
-                TicketTable.update({TicketTable.lottoIndex eq lottoIndex}) {
-                    with(SqlExpressionBuilder) {
-                        it.update(TicketTable.approved, TicketTable.approved + TicketTable.requested)
-                        it.update(TicketTable.requested, QueryParameter(0, IntegerColumnType()))
+                if (approveAll) {
+                    TicketTable.update({TicketTable.lottoIndex eq lottoIndex}) {
+                        with(SqlExpressionBuilder) {
+                            it.update(TicketTable.approved, TicketTable.approved + TicketTable.requested)
+                            it.update(TicketTable.requested, QueryParameter(0, IntegerColumnType()))
+                        }
                     }
-                }
-                dbResult = OperationStatus.COMPLETED
-            } else {
+                    dbResult = OperationStatus.COMPLETED
+                } else {
+                    val _users = users.mapNotNull { it.user?.longID }
+                    val _tickets = users.mapNotNull { it.tickets }
 
+                    for (i in 0.._users.size) {
+                        TicketTable.update({(TicketTable.lottoIndex eq lottoIndex) and (TicketTable.userId eq _users[i])}) {
+                            with(SqlExpressionBuilder) {
+                                it.update(TicketTable.approved, TicketTable.approved + _tickets[i])
+                                it.update(TicketTable.requested, TicketTable.requested - _tickets[i])
+                            }
+                        }
+                    }
+                    dbResult = OperationStatus.COMPLETED
+                }
+            } catch (e: Exception) {
+                println("")
             }
         }
 

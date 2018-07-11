@@ -4,6 +4,7 @@ import com.beust.klaxon.Klaxon
 import net.devthedevel.lotti.Lotti
 import net.devthedevel.lotti.commands.Command
 import net.devthedevel.lotti.commands.CommandContext
+import net.devthedevel.lotti.commands.InvalidCommand
 import net.devthedevel.lotti.db.LotteryDatabase
 import net.devthedevel.lotti.db.OperationStatus
 import net.devthedevel.lotti.json.UserConverter
@@ -42,6 +43,15 @@ class AdminApproveCommand(context: CommandContext): Command(context) {
                     val converter = UserConverter(context.guild)
                     requests = Klaxon().converter(converter.converter).parseArray("[$json]")
                 } catch (e: Exception) {}
+            }
+
+            if (requests != null) {
+                val op = LotteryDatabase.approveTickets(context.guild, context.channel, requests)
+
+                when (op) {
+                    OperationStatus.COMPLETED -> {}
+                    else -> return sendInvalidCommandMessage(false, null)
+                }
             }
         }
     }
