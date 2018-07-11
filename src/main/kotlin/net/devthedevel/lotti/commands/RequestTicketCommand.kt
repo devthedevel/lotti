@@ -14,10 +14,15 @@ class RequestTicketCommand(context: CommandContext): Command(context) {
         //Determine if sender is gifting tickets
         if (context.arguments.size == 2) {
             val user = context.arguments.removeAt(0)
-            val users = context.guild.getUsersByName(user, true)
 
-            if (users.isNotEmpty()) {
-                targetUser = users[0]
+            if (user.startsWith("<@") && user.endsWith(">")) {
+                targetUser = context.guild.getUserByID(user.removePrefix("<@").removeSuffix(">").toLong())
+            } else {
+                val users = context.guild.getUsersByName(user, true)
+
+                if (users.isNotEmpty()) {
+                    targetUser = users[0]
+                }
             }
         }
         if (context.arguments.isNotEmpty()) {

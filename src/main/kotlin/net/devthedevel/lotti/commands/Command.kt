@@ -25,6 +25,9 @@ abstract class Command constructor(val context: CommandContext) {
             let {
                 var messageContents = event.message.content
 
+                //Early return
+                if (sender.isBot || !messageContents.startsWith(Lotti.COMMAND_PREFIX)) return null
+
                 //Parse JSON arguments
                 let {
                     val jsonStartIdx = messageContents.indexOf("{")
@@ -37,11 +40,8 @@ abstract class Command constructor(val context: CommandContext) {
 
                 //Split non-JSON arguments and remove prefix/command name
                 args = messageContents.split(" ").toMutableList()
-                val prefix = args.removeAt(0)
+                args.removeAt(0)
                 commandName = args.removeAt(0)
-
-                //Early return
-                if (sender.isBot || !prefix.equals(Lotti.COMMAND_PREFIX, true)) return null
             }
 
             //Check if admin
