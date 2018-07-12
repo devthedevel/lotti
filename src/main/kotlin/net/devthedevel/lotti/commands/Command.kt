@@ -3,6 +3,7 @@ package net.devthedevel.lotti.commands
 import com.sun.org.apache.xpath.internal.operations.Bool
 import net.devthedevel.lotti.Lotti
 import net.devthedevel.lotti.commands.admin.AdminCommand
+import net.devthedevel.lotti.commands.debug.IdDebugCommand
 import net.devthedevel.lotti.db.LotteryDatabase
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent
 import sx.blah.discord.handle.obj.IChannel
@@ -61,6 +62,8 @@ abstract class Command constructor(val context: CommandContext) {
                 HelpCommand.COMMAND_NAME -> HelpCommand(context)
                 StatusCommand.COMMAND_NAME -> StatusCommand(context)
                 AdminCommand.COMMAND_NAME -> AdminCommand(context)
+                FeedbackCommand.COMMAND_NAME -> FeedbackCommand(context)
+                IdDebugCommand.COMMAND_NAME -> IdDebugCommand(context)
                 else -> InvalidCommand(context)
             }
         }

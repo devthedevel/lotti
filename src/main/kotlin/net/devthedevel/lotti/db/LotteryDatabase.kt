@@ -7,15 +7,13 @@ import net.devthedevel.lotti.commands.admin.AdminRequests
 import net.devthedevel.lotti.db.dto.ChannelStatus
 import net.devthedevel.lotti.db.dto.DatabaseResult
 import net.devthedevel.lotti.db.dto.Lottery
-import net.devthedevel.lotti.db.tables.AdminRolesTable
-import net.devthedevel.lotti.db.tables.GuildOptionsTable
-import net.devthedevel.lotti.db.tables.LotteryTable
-import net.devthedevel.lotti.db.tables.TicketTable
+import net.devthedevel.lotti.db.tables.*
 import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SchemaUtils.create
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.joda.time.DateTime
 import org.postgresql.util.PSQLException
 import sx.blah.discord.handle.obj.IChannel
 import sx.blah.discord.handle.obj.IGuild
@@ -29,7 +27,7 @@ object LotteryDatabase {
 
     fun initTables() {
         transaction(db) {
-            create (GuildOptionsTable, AdminRolesTable, LotteryTable, TicketTable)
+            create (GuildOptionsTable, AdminRolesTable, LotteryTable, TicketTable, FeedbackTable)
         }
     }
 
@@ -376,6 +374,22 @@ object LotteryDatabase {
             } catch (e: Exception) {
                 println("")
             }
+        }
+
+        return dbResult
+    }
+
+    fun sendFeedback(user: IUser, feedback: String): OperationStatus {
+        var dbResult = OperationStatus.FAILED
+        transaction(this.db) {
+            FeedbackTable.insert {
+                it[date] = DateTime.now()
+                it[version] = Lotti.VERSION
+                it[userId] = user.longID
+                it[FeedbackTable.feedback] = feedback
+            }
+
+            dbResult = OperationStatus.COMPLETED
         }
 
         return dbResult

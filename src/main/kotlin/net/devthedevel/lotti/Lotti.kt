@@ -7,6 +7,7 @@ class Lotti {
 
     companion object {
         //Consts
+        const val VERSION = "alpha_1.0"
         const val COMMAND_PREFIX = "/lotti"
 
         //Env vars
