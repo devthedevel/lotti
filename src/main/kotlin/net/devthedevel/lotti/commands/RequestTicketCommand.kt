@@ -51,12 +51,9 @@ class RequestTicketCommand(context: CommandContext, parameters: MutableList<Stri
     }
 
     override fun execute() {
-        MessageBuilder(Lotti.CLIENT).apply {
-            withChannel(context.channel)
-            withContent(context.sender.mention(true) + "\n")
+        val (op, approved, requested) = LotteryDatabase.userBuyTickets(context.guild, context.channel, targetUser, numTickets, context.isAdmin)
 
-            val (op, approved, requested) = LotteryDatabase.userBuyTickets(context.guild, context.channel, targetUser, numTickets, context.isAdmin)
-
+        sendMessage(context.channel, context.sender) {
             when (op) {
                 OperationStatus.COMPLETED -> {
                     if (targetUser == context.sender) {
@@ -68,9 +65,8 @@ class RequestTicketCommand(context: CommandContext, parameters: MutableList<Stri
                 OperationStatus.DOES_NOT_EXIST -> {
                     appendContent("I know you're eager to throw away money but there's no lottery started. Ask your leaders to start one.")
                 }
-                else -> return InvalidCommand(context, parameters).execute()
+                else -> InvalidCommand(context, parameters).execute()
             }
-            send()
         }
     }
 

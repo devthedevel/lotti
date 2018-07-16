@@ -21,20 +21,16 @@ class FeedbackCommand(context: CommandContext, parameters: MutableList<String>):
     }
 
     override fun execute() {
-        MessageBuilder(Lotti.CLIENT).apply {
-            withChannel(context.channel)
-            appendContent(context.sender.mention(true) + "\n")
-
+        sendMessage(context.sender.orCreatePMChannel, context.sender) {
             if (feedback.isNotBlank()) {
                 val op = LotteryDatabase.sendFeedback(context.sender, feedback)
                 when (op) {
                     OperationStatus.COMPLETED -> appendContent("Feedback recieved! Thanks for criticizing me!")
-                    else -> return sendInvalidCommandMessage()
+                    else -> sendInvalidCommandMessage()
                 }
             } else {
                 appendContent("I would love to hear your thoughts on the wonderful, amazing me, buuuuuuuut you need to actually write something about me first!")
             }
-            send()
         }
     }
 

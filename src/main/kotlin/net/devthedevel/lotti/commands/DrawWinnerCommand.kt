@@ -29,10 +29,7 @@ class DrawWinnerCommand(context: CommandContext, parameters: MutableList<String>
     }
 
     override fun execute() {
-        MessageBuilder(Lotti.CLIENT).apply {
-            withChannel(context.channel)
-            withContent(context.sender.mention(true) + "\n")
-
+        sendMessage(context.channel, context.sender) {
             if (context.isAdmin) {
                 val (op, result) = LotteryDatabase.getApprovedTickets(context.guild, context.channel)
 
@@ -46,18 +43,17 @@ class DrawWinnerCommand(context: CommandContext, parameters: MutableList<String>
                             }
                             LotteryDatabase.deleteLotto(context.guild, context.channel)
                         } else {
-                            withContent("Huh, looks like no one has any approved tickets...")
+                            appendContent("Huh, looks like no one has any approved tickets...")
                         }
                     }
                     OperationStatus.DOES_NOT_EXIST -> {
                         appendContent("If there's no lottery then how can anyone be a winner?")
                     }
-                    else -> return sendInvalidCommandMessage()
+                    else -> sendInvalidCommandMessage()
                 }
             } else {
                 appendContent("Well this is awkward. You need to be an admin to actually draw from the lottery.")
             }
-            send()
         }
     }
 

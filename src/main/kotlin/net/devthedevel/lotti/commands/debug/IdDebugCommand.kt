@@ -14,10 +14,7 @@ class IdDebugCommand(context: CommandContext, parameters: MutableList<String>): 
     }
 
     override fun execute() {
-        MessageBuilder(Lotti.CLIENT).apply {
-            withChannel(context.channel)
-            withContent(context.sender.mention(true) + "\n")
-
+        sendMessage(context.sender.orCreatePMChannel, context.sender) {
             if (id != null) {
                 val user = context.guild.getUserByID(id)
 
@@ -31,7 +28,6 @@ class IdDebugCommand(context: CommandContext, parameters: MutableList<String>): 
                     appendContent("User: ${user.name} AKA ${user.getNicknameForGuild(context.guild)}")
                 }
             } else appendContent("Come on Dev, gimme a proper ID. God, stop being bad!")
-            send()
         }
     }
 

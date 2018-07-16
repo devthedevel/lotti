@@ -27,11 +27,7 @@ class AdminApproveCommand(context: CommandContext, parameters: MutableList<Strin
 
             when (op) {
                 OperationStatus.COMPLETED -> {
-                    MessageBuilder(Lotti.CLIENT).apply {
-                        withChannel(context.channel)
-                        withContent("All tickets approved")
-                        send()
-                    }
+                    sendMessage(context.channel, context.sender, {withContent("All tickets approved!")})
                 }
                 else -> {
                 }

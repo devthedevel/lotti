@@ -16,9 +16,7 @@ class HelpCommand(context: CommandContext, parameters: MutableList<String>): Com
     }
 
     override fun execute() {
-        MessageBuilder(Lotti.CLIENT).apply {
-            withChannel(context.sender.orCreatePMChannel)
-            withContent("Heya ${context.sender.mention(true)}\n")
+        sendMessage(context.sender.orCreatePMChannel, context.sender) {
             appendContent("Here's a list of commands:\n\n")
             appendContent("**/lotti new**    *Creates a new lottery for the server*\n")
             appendContent("**/lotti buy [user] [numTickets]**    *Buy numTickets for the specified user. Leave user blank to purchase tickets for yourself. numTickets must be positive*\n")
@@ -34,7 +32,6 @@ class HelpCommand(context: CommandContext, parameters: MutableList<String>): Com
                 appendContent("**/lotti admin requests [{\"name\": Text}]**     *View ticket requests. If the JSON parameter is left out, will return all requested tickets for the lottery*\n")
                 appendContent("**/lotti admin approve [all]**       *Approve ticket requests. Currently can only approve all user's request tickets at once*\n")
             }
-            send()
         }
     }
 
