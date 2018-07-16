@@ -68,7 +68,7 @@ class RequestTicketCommand(context: CommandContext, parameters: MutableList<Stri
                 OperationStatus.DOES_NOT_EXIST -> {
                     appendContent("I know you're eager to throw away money but there's no lottery started. Ask your leaders to start one.")
                 }
-                else -> return InvalidCommand(context).execute()
+                else -> return InvalidCommand(context, parameters).execute()
             }
             send()
         }

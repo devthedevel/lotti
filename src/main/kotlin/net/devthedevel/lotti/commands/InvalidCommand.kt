@@ -3,7 +3,12 @@ package net.devthedevel.lotti.commands
 import net.devthedevel.lotti.Lotti
 import sx.blah.discord.util.MessageBuilder
 
-class InvalidCommand(context: CommandContext): Command(context) {
+class InvalidCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
+
+    override fun sendInvalidMessage() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
     override fun execute() {
         MessageBuilder(Lotti.CLIENT).apply {
             withChannel(context.channel)

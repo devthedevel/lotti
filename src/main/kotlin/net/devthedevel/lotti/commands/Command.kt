@@ -18,7 +18,7 @@ abstract class Command constructor(val context: CommandContext, val parameters: 
             val channel: IChannel = event.channel
             val guild: IGuild = event.guild
             var commandName: String? = null
-            val parameters = event.message.content.split("").toMutableList()
+            val parameters = event.message.content.split(" ").toMutableList()
 
             //Early return
             if (sender.isBot || Lotti.COMMAND_PREFIX != parameters.removeAt(0)) return null
@@ -44,7 +44,7 @@ abstract class Command constructor(val context: CommandContext, val parameters: 
                 AdminCommand.COMMAND_NAME -> AdminCommand(context, parameters)
                 FeedbackCommand.COMMAND_NAME -> FeedbackCommand(context, parameters)
                 IdDebugCommand.COMMAND_NAME -> IdDebugCommand(context, parameters)
-                else -> InvalidCommand(context)
+                else -> InvalidCommand(context, parameters)
             }
         }
     }
@@ -53,8 +53,18 @@ abstract class Command constructor(val context: CommandContext, val parameters: 
     Methods
     */
     open fun validate(): Boolean = true
+
     abstract fun sendInvalidMessage()
     abstract fun execute()
+
+    fun sendMessage(channel: IChannel, user: IUser, message: MessageBuilder.() -> Unit) {
+        MessageBuilder(Lotti.CLIENT).apply {
+            withChannel(channel)
+            withContent(user.mention(true) + "\n")
+            message()
+            send()
+        }
+    }
 
     fun sendInvalidCommandMessage(mention: Boolean = false, msg: String? = null) {
         MessageBuilder(Lotti.CLIENT).apply {
