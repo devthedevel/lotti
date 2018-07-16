@@ -5,12 +5,13 @@ import net.devthedevel.lotti.commands.Command
 import net.devthedevel.lotti.commands.CommandContext
 import sx.blah.discord.util.MessageBuilder
 
-class IdDebugCommand(context: CommandContext) : Command(context) {
-    companion object {
-        const val COMMAND_NAME: String = "debug"
-    }
+class IdDebugCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
 
-    private val id = if (context.arguments.isNotEmpty()) context.arguments.removeAt(0).toLong() else null
+    private val id = if (parameters.isNotEmpty()) parameters.removeAt(0).toLong() else null
+
+    override fun sendInvalidMessage() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
 
     override fun execute() {
         MessageBuilder(Lotti.CLIENT).apply {
@@ -32,5 +33,9 @@ class IdDebugCommand(context: CommandContext) : Command(context) {
             } else appendContent("Come on Dev, gimme a proper ID. God, stop being bad!")
             send()
         }
+    }
+
+    companion object {
+        const val COMMAND_NAME: String = "debug"
     }
 }

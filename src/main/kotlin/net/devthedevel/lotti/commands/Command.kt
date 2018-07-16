@@ -52,7 +52,7 @@ abstract class Command constructor(val context: CommandContext, val parameters: 
     /*
     Methods
     */
-    abstract fun validate(): Boolean
+    open fun validate(): Boolean = true
     abstract fun sendInvalidMessage()
     abstract fun execute()
 

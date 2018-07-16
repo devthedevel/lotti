@@ -5,20 +5,19 @@ import net.devthedevel.lotti.db.LotteryDatabase
 import net.devthedevel.lotti.db.OperationStatus
 import sx.blah.discord.util.MessageBuilder
 
-class FeedbackCommand(context: CommandContext) : Command(context) {
-    companion object {
-        const val COMMAND_NAME: String = "feedback"
-    }
+class FeedbackCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
 
     var feedback: String = String()
 
     init {
-       if (context.arguments.isNotEmpty()) {
-           context.arguments.forEach {
-               feedback += "$it "
-           }
+       if (parameters.isNotEmpty()) {
+           parameters.joinToString(" ")
            feedback.trim()
        }
+    }
+
+    override fun sendInvalidMessage() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun execute() {
@@ -37,5 +36,9 @@ class FeedbackCommand(context: CommandContext) : Command(context) {
             }
             send()
         }
+    }
+
+    companion object {
+        const val COMMAND_NAME: String = "feedback"
     }
 }

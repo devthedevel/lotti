@@ -5,12 +5,13 @@ import net.devthedevel.lotti.db.LotteryDatabase
 import net.devthedevel.lotti.db.OperationStatus
 import sx.blah.discord.util.MessageBuilder
 
-class StatusCommand(context: CommandContext): Command(context) {
-    companion object {
-        const val COMMAND_NAME: String = "status"
-    }
+class StatusCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
 
-    private val scope: String? = if (context.arguments.size == 0) null else context.arguments[0]
+    private val scope: String? = if (parameters.size == 0) null else parameters[0]
+
+    override fun sendInvalidMessage() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
 
     override fun execute() {
         if (scope != null) {
@@ -44,6 +45,9 @@ class StatusCommand(context: CommandContext): Command(context) {
             }
             send()
         }
+    }
 
+    companion object {
+        const val COMMAND_NAME: String = "status"
     }
 }

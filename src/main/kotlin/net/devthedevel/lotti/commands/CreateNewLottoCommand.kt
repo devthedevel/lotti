@@ -7,9 +7,6 @@ import sx.blah.discord.util.MessageBuilder
 
 class CreateNewLottoCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
 
-    //Command has no parameters to validate
-    override fun validate(): Boolean = true
-
     override fun sendInvalidMessage() {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }

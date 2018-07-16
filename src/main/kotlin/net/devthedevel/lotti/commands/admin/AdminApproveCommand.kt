@@ -10,15 +10,16 @@ import net.devthedevel.lotti.db.OperationStatus
 import net.devthedevel.lotti.json.UserConverter
 import sx.blah.discord.util.MessageBuilder
 
-class AdminApproveCommand(context: CommandContext): Command(context) {
-    companion object {
-        const val COMMAND_NAME: String = "approve"
-    }
+class AdminApproveCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
 
-    private val json: String? = context.json
-    private val approveAll = if (context.arguments.isNotEmpty()) {
-        "all" == context.arguments.removeAt(0)
+    private val json: String? = null //context.json TODO Update parsing syntax
+    private val approveAll = if (parameters.isNotEmpty()) {
+        "all" == parameters.removeAt(0)
     } else false
+
+    override fun sendInvalidMessage() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
 
     override fun execute() {
         if (approveAll) {
@@ -54,5 +55,9 @@ class AdminApproveCommand(context: CommandContext): Command(context) {
                 }
             }
         }
+    }
+
+    companion object {
+        const val COMMAND_NAME: String = "approve"
     }
 }

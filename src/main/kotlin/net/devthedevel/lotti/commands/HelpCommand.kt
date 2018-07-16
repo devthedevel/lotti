@@ -5,9 +5,6 @@ import sx.blah.discord.util.MessageBuilder
 
 class HelpCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
 
-    //Command has no parameters to validate
-    override fun validate(): Boolean = true
-
     override fun sendInvalidMessage() {
         MessageBuilder(Lotti.CLIENT).apply {
             withChannel(context.channel)

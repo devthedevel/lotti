@@ -10,19 +10,20 @@ import net.devthedevel.lotti.db.OperationStatus
 import net.devthedevel.lotti.json.UserConverter
 import sx.blah.discord.util.MessageBuilder
 
-class AdminRequestsCommand(context: CommandContext): Command(context) {
-    companion object {
-        const val COMMAND_NAME: String = "requests"
-    }
+class AdminRequestsCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
 
-    private val json: String? = context.json
-    private val adminOp: AdminOperation = if (context.arguments.isNotEmpty()) {
-        val arg0 = context.arguments.removeAt(0)
+    private val json: String? = null //context.json TODO Update parsing syntax
+    private val adminOp: AdminOperation = if (parameters.isNotEmpty()) {
+        val arg0 = parameters.removeAt(0)
         if (arg0 != "[]") {
             AdminOperation.parseOperation(arg0)
         }
         AdminOperation.GET
     } else AdminOperation.GET   //TODO Find a better way to do this
+
+    override fun sendInvalidMessage() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
 
     override fun execute() {
         var requests: List<AdminRequests>? = listOf()
@@ -75,5 +76,9 @@ class AdminRequestsCommand(context: CommandContext): Command(context) {
             }
             else -> return sendInvalidCommandMessage()
         }
+    }
+
+    companion object {
+        const val COMMAND_NAME: String = "requests"
     }
 }

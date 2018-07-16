@@ -9,13 +9,14 @@ import net.devthedevel.lotti.db.OperationStatus
 import net.devthedevel.lotti.json.RoleConverter
 import sx.blah.discord.util.MessageBuilder
 
-class AdminConfigCommand(context: CommandContext): Command(context) {
-    companion object {
-        const val COMMAND_NAME: String = "config"
-    }
+class AdminConfigCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
 
-    private val json: String? = context.json
-    private val adminOp: AdminOperation = if (context.arguments.isNotEmpty()) AdminOperation.parseOperation(context.arguments[0]) else AdminOperation.GET
+    private val json: String? = null //context.json TODO Update parsing syntax
+    private val adminOp: AdminOperation = if (parameters.isNotEmpty()) AdminOperation.parseOperation(parameters[0]) else AdminOperation.GET
+
+    override fun sendInvalidMessage() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
 
     override fun execute() {
         var options: AdminOptions? = null
@@ -80,5 +81,9 @@ class AdminConfigCommand(context: CommandContext): Command(context) {
                 else -> return sendInvalidCommandMessage()
             }
         }
+    }
+
+    companion object {
+        const val COMMAND_NAME: String = "config"
     }
 }
