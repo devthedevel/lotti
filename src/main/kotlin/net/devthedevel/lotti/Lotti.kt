@@ -11,7 +11,7 @@ class Lotti {
         const val COMMAND_PREFIX = "/lotti"
 
         //Env vars
-        val TOKEN = System.getenv("DISCORD_BOT_TOKEN")
+        private val TOKEN = System.getenv("DISCORD_BOT_TOKEN")
         val DATABASE_URL = System.getenv("DATABASE_URL_SSL")
 
         //Discord gateway client

@@ -3,9 +3,19 @@ package net.devthedevel.lotti.commands
 import net.devthedevel.lotti.Lotti
 import sx.blah.discord.util.MessageBuilder
 
-class HelpCommand(context: CommandContext): Command(context) {
-    companion object {
-        const val COMMAND_NAME: String = "help"
+class HelpCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
+
+    //Command has no parameters to validate
+    override fun validate(): Boolean = true
+
+    override fun sendInvalidMessage() {
+        MessageBuilder(Lotti.CLIENT).apply {
+            withChannel(context.channel)
+            withContent(context.sender.mention(true) + "\n")
+            appendContent("I don't know how or why you did it, but you managed to get *help* wrong...")
+
+            send()
+        }
     }
 
     override fun execute() {
@@ -29,5 +39,9 @@ class HelpCommand(context: CommandContext): Command(context) {
             }
             send()
         }
+    }
+
+    companion object {
+        const val COMMAND_NAME: String = "help"
     }
 }

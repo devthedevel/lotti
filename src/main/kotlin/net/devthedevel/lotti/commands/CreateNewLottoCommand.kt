@@ -5,9 +5,13 @@ import net.devthedevel.lotti.db.LotteryDatabase
 import net.devthedevel.lotti.db.OperationStatus
 import sx.blah.discord.util.MessageBuilder
 
-class CreateNewLottoCommand(context: CommandContext): Command(context) {
-    companion object {
-        const val COMMAND_NAME: String = "new"
+class CreateNewLottoCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
+
+    //Command has no parameters to validate
+    override fun validate(): Boolean = true
+
+    override fun sendInvalidMessage() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun execute() {
@@ -29,4 +33,9 @@ class CreateNewLottoCommand(context: CommandContext): Command(context) {
             send()
         }
     }
+
+    companion object {
+        const val COMMAND_NAME: String = "new"
+    }
+
 }

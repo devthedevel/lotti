@@ -5,16 +5,26 @@ import net.devthedevel.lotti.db.LotteryDatabase
 import net.devthedevel.lotti.db.OperationStatus
 import sx.blah.discord.util.MessageBuilder
 
-class DrawWinnerCommand(context: CommandContext): Command(context) {
-    companion object {
-        const val COMMAND_NAME: String = "draw"
-    }
-
+class DrawWinnerCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
     private var numOfWinners: Int = 1
 
     init {
-        if (context.arguments.isNotEmpty()) {
-            numOfWinners = parseToInt(context.arguments.removeAt(0), 0, sendInvalidMessage = true, invalidMessage = "Defaulting to one winner...") ?: 1
+        if (parameters.isNotEmpty()) {
+            numOfWinners = parseToInt(parameters.removeAt(0), 0, sendInvalidMessage = true, invalidMessage = "Defaulting to one winner...") ?: 1
+        }
+    }
+
+    override fun validate(): Boolean {
+        return numOfWinners > 0 && numOfWinners < Int.MAX_VALUE
+    }
+
+    override fun sendInvalidMessage() {
+        MessageBuilder(Lotti.CLIENT).apply {
+            withChannel(context.channel)
+            withContent(context.sender.mention(true) + "\n")
+            appendContent("Well I need to know how many winners to select...")
+
+            send()
         }
     }
 
@@ -49,5 +59,9 @@ class DrawWinnerCommand(context: CommandContext): Command(context) {
             }
             send()
         }
+    }
+
+    companion object {
+        const val COMMAND_NAME: String = "draw"
     }
 }
