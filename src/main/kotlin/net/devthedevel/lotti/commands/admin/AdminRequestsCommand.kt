@@ -21,10 +21,6 @@ class AdminRequestsCommand(context: CommandContext, parameters: MutableList<Stri
         AdminOperation.GET
     } else AdminOperation.GET   //TODO Find a better way to do this
 
-    override fun sendInvalidMessage() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
     override fun execute() {
         var requests: List<AdminRequests>? = listOf()
 
@@ -37,14 +33,10 @@ class AdminRequestsCommand(context: CommandContext, parameters: MutableList<Stri
 
         when (adminOp) {
             AdminOperation.GET -> {
-                MessageBuilder(Lotti.CLIENT).apply {
-                    withChannel(context.channel)
 
                     //Return early if user given in JSON does not exist in guild
                     if (json != null && requests?.isEmpty() == true) {
-                        withContent(context.sender.mention(true) + "\n")
-                        appendContent("User doesn't exist. Have you spelled the name correctly?")
-                        send()
+                        sendMessage { appendContent("User doesn't exist. Have you spelled the name correctly?") }
                         return
                     }
 
@@ -52,29 +44,24 @@ class AdminRequestsCommand(context: CommandContext, parameters: MutableList<Stri
 
                     when (op) {
                         OperationStatus.COMPLETED -> {
-                            withContent(context.sender.mention(true) + "\n")
-                            users.forEach {
-                                val username = it.user?.getNicknameForGuild(context.guild)
-                                        ?: it.user?.getDisplayName(context.guild)
-                                appendContent("- $username: ${it.tickets} requested tickets\n")
+                            sendMessage {
+                                users.forEach {
+                                    val username = it.user?.getNicknameForGuild(context.guild)
+                                            ?: it.user?.getDisplayName(context.guild)
+                                    appendContent("- $username: ${it.tickets} requested tickets\n")
+                                }
                             }
                         }
-                        OperationStatus.NO_RESULT -> {
-                            withContent(context.sender.mention(true) + "\n")
-                            appendContent("No requested tickets at this time")
-                        }
-                        else -> {
-                        }
+                        OperationStatus.NO_RESULT -> sendMessage { appendContent("No requested tickets at this time") }
+                        else -> { }
                     }
-                    send()
-                }
             }
             AdminOperation.SET -> {
                 if (requests != null && requests.isNotEmpty()) {
                     print("")
                 }
             }
-            else -> return sendInvalidCommandMessage()
+            else -> return sendInvalidMessage()
         }
     }
 

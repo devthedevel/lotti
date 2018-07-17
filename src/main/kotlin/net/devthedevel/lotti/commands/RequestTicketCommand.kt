@@ -1,12 +1,11 @@
 package net.devthedevel.lotti.commands
 
-import net.devthedevel.lotti.Lotti
 import net.devthedevel.lotti.db.LotteryDatabase
 import net.devthedevel.lotti.db.OperationStatus
 import net.devthedevel.lotti.utils.getDiscordId
 import net.devthedevel.lotti.utils.isDiscordId
+import net.devthedevel.lotti.utils.parseToInt
 import sx.blah.discord.handle.obj.IUser
-import sx.blah.discord.util.MessageBuilder
 
 class RequestTicketCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
     private var numTickets: Int = 0
@@ -28,26 +27,12 @@ class RequestTicketCommand(context: CommandContext, parameters: MutableList<Stri
             }
         }
         if (parameters.isNotEmpty()) {
-            numTickets = parseToInt(parameters.removeAt(0), 0) ?: 0
+            numTickets = parameters.removeAt(0).parseToInt(0) ?: 0
         }
     }
 
     override fun validate(): Boolean {
         return numTickets > 0 && numTickets < Int.MAX_VALUE
-    }
-
-    override fun sendInvalidMessage() {
-        MessageBuilder(Lotti.CLIENT).apply {
-            withChannel(context.channel)
-            withContent(context.sender.mention(true) + "\n")
-
-            when (numTickets) {
-                0 -> appendContent("You need to tell me how many tickets you want to buy!")
-                in Int.MIN_VALUE..-1 -> appendContent("You can't buy negative tickets silly goose. Try that again.")
-            }
-
-            send()
-        }
     }
 
     override fun execute() {
@@ -67,6 +52,13 @@ class RequestTicketCommand(context: CommandContext, parameters: MutableList<Stri
                 }
                 else -> InvalidCommand(context, parameters).execute()
             }
+        }
+    }
+
+    override fun sendInvalidMessage(message: String?) {
+        when (numTickets) {
+            0 -> super.sendInvalidMessage("You need to tell me how many tickets you want to buy!")
+            in Int.MIN_VALUE..-1 -> super.sendInvalidMessage("You can't buy negative tickets silly goose. Try that again.")
         }
     }
 

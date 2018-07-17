@@ -9,10 +9,6 @@ class IdDebugCommand(context: CommandContext, parameters: MutableList<String>): 
 
     private val id = if (parameters.isNotEmpty()) parameters.removeAt(0).toLong() else null
 
-    override fun sendInvalidMessage() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
     override fun execute() {
         sendMessage(context.sender.orCreatePMChannel, context.sender) {
             if (id != null) {

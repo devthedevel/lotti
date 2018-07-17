@@ -5,10 +5,6 @@ import net.devthedevel.lotti.db.OperationStatus
 
 class CreateNewLottoCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
 
-    override fun sendInvalidMessage() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
     override fun execute() {
         val op = LotteryDatabase.createNewLotto(context.guild, context.channel, context.sender)
 
@@ -22,7 +18,7 @@ class CreateNewLottoCommand(context: CommandContext, parameters: MutableList<Str
                     }
                 }
                 OperationStatus.EXISTS -> appendContent("Hmmm there's currently a lotto started!")
-                else -> sendInvalidCommandMessage()
+                else -> sendInvalidMessage()
             }
         }
     }

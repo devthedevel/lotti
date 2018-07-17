@@ -17,10 +17,6 @@ class AdminApproveCommand(context: CommandContext, parameters: MutableList<Strin
         "all" == parameters.removeAt(0)
     } else false
 
-    override fun sendInvalidMessage() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
     override fun execute() {
         if (approveAll) {
             val op = LotteryDatabase.approveTickets(context.guild, context.channel, approveAll = approveAll)
@@ -29,8 +25,7 @@ class AdminApproveCommand(context: CommandContext, parameters: MutableList<Strin
                 OperationStatus.COMPLETED -> {
                     sendMessage(context.channel, context.sender, {withContent("All tickets approved!")})
                 }
-                else -> {
-                }
+                else -> { }
             }
         } else {
             var requests: List<AdminRequests>? = listOf()
@@ -47,7 +42,7 @@ class AdminApproveCommand(context: CommandContext, parameters: MutableList<Strin
 
                 when (op) {
                     OperationStatus.COMPLETED -> {}
-                    else -> return sendInvalidCommandMessage(false, null)
+                    else -> return sendInvalidMessage()
                 }
             }
         }

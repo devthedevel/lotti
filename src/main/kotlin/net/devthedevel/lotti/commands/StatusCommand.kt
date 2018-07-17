@@ -1,28 +1,14 @@
 package net.devthedevel.lotti.commands
 
-import net.devthedevel.lotti.Lotti
 import net.devthedevel.lotti.db.LotteryDatabase
 import net.devthedevel.lotti.db.OperationStatus
-import sx.blah.discord.util.MessageBuilder
 
 class StatusCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
 
-    private val scope: String? = if (parameters.size == 0) null else parameters[0]
-
-    override fun sendInvalidMessage() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
     override fun execute() {
-        if (scope != null) {
-
-        }
-
         val (creatorId, currencyName, ticketPrice, users, result) = LotteryDatabase.getChannelStatus(context.guild, context.channel)
 
-        MessageBuilder(Lotti.CLIENT).apply {
-            withChannel(context.channel)
-            withContent(context.sender.mention(true) + "\n")
+        sendMessage(context.channel, context.sender) {
             when (result) {
                 OperationStatus.COMPLETED -> {
                     val creatorUser = context.guild.getUserByID(creatorId ?: 0)
@@ -41,9 +27,8 @@ class StatusCommand(context: CommandContext, parameters: MutableList<String>): C
                     }
                 }
                 OperationStatus.DOES_NOT_EXIST -> withContent("Hey ${context.sender.mention(true)}, I know you're eager to throw away money but there's no lottery started. Ask your leaders to start one.")
-                else -> return sendInvalidCommandMessage()
+                else -> sendInvalidMessage()
             }
-            send()
         }
     }
 

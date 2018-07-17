@@ -54,51 +54,24 @@ abstract class Command constructor(val context: CommandContext, val parameters: 
     */
     open fun validate(): Boolean = true
 
-    abstract fun sendInvalidMessage()
     abstract fun execute()
 
-    fun sendMessage(channel: IChannel, user: IUser, message: MessageBuilder.() -> Unit) {
+    open fun sendInvalidMessage(message: String? = null) {
+        sendMessage(context.channel, context.sender, {
+            if (message != null) {
+                appendContent(message)
+            } else appendContent("Hmmm something went wrong. Maybe try it again?")
+        })
+    }
+
+    fun sendMessage(channel: IChannel = context.channel, user: IUser? = null, message: MessageBuilder.() -> Unit) {
         MessageBuilder(Lotti.CLIENT).apply {
             withChannel(channel)
-            withContent(user.mention(true) + "\n")
+            if (user != null) {
+                withContent(user.mention(true) + "\n")
+            } else withContent("")
             message()
             send()
         }
-    }
-
-    fun sendInvalidCommandMessage(mention: Boolean = false, msg: String? = null) {
-        MessageBuilder(Lotti.CLIENT).apply {
-            withChannel(context.channel)
-
-            if (mention) {
-                withContent(context.sender.mention(true) + "\n")
-                appendContent("Seems like you made an invalid command.\n")
-            } else {
-                withContent("Seems like you made an invalid command.\n")
-            }
-
-            if (msg.isNullOrEmpty()) {
-                appendContent("Have you made a typo? If you're feeling lost, try the help command")
-            } else {
-                appendContent(msg)
-            }
-            send()
-        }
-    }
-
-    fun parseToInt(str: String, lower: Int = Int.MIN_VALUE, higher: Int = Int.MAX_VALUE, sendInvalidMessage: Boolean = false, invalidMessage: String? = null): Int? {
-        var ret: Int? = null
-        if (str.isNotEmpty()) {
-            try {
-                val num = str.toDouble().toInt()
-                ret = if (num < lower) lower else num
-                ret = if (num > higher) higher else num
-            } catch (e: NumberFormatException) {
-                if (sendInvalidMessage) {
-                    sendInvalidCommandMessage(false, invalidMessage)
-                }
-            }
-        }
-        return ret
     }
 }

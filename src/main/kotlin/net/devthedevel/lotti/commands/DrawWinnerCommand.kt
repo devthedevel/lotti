@@ -1,31 +1,20 @@
 package net.devthedevel.lotti.commands
 
-import net.devthedevel.lotti.Lotti
 import net.devthedevel.lotti.db.LotteryDatabase
 import net.devthedevel.lotti.db.OperationStatus
-import sx.blah.discord.util.MessageBuilder
+import net.devthedevel.lotti.utils.parseToInt
 
 class DrawWinnerCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
     private var numOfWinners: Int = 1
 
     init {
         if (parameters.isNotEmpty()) {
-            numOfWinners = parseToInt(parameters.removeAt(0), 0, sendInvalidMessage = true, invalidMessage = "Defaulting to one winner...") ?: 1
+            numOfWinners = parameters.removeAt(0).parseToInt(0) ?: 1
         }
     }
 
     override fun validate(): Boolean {
         return numOfWinners > 0 && numOfWinners < Int.MAX_VALUE
-    }
-
-    override fun sendInvalidMessage() {
-        MessageBuilder(Lotti.CLIENT).apply {
-            withChannel(context.channel)
-            withContent(context.sender.mention(true) + "\n")
-            appendContent("Well I need to know how many winners to select...")
-
-            send()
-        }
     }
 
     override fun execute() {
@@ -49,12 +38,16 @@ class DrawWinnerCommand(context: CommandContext, parameters: MutableList<String>
                     OperationStatus.DOES_NOT_EXIST -> {
                         appendContent("If there's no lottery then how can anyone be a winner?")
                     }
-                    else -> sendInvalidCommandMessage()
+                    else -> sendInvalidMessage()
                 }
             } else {
                 appendContent("Well this is awkward. You need to be an admin to actually draw from the lottery.")
             }
         }
+    }
+
+    override fun sendInvalidMessage(message: String?) {
+        super.sendInvalidMessage("Well I need to know how many winners to select...")
     }
 
     companion object {

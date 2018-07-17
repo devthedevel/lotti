@@ -1,17 +1,10 @@
 package net.devthedevel.lotti.commands
 
-import net.devthedevel.lotti.Lotti
-import sx.blah.discord.util.MessageBuilder
-
 class HelpCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
 
-    override fun sendInvalidMessage() {
-        MessageBuilder(Lotti.CLIENT).apply {
-            withChannel(context.channel)
-            withContent(context.sender.mention(true) + "\n")
+    override fun sendInvalidMessage(message: String?) {
+        sendMessage(context.channel, context.sender) {
             appendContent("I don't know how or why you did it, but you managed to get *help* wrong...")
-
-            send()
         }
     }
 
