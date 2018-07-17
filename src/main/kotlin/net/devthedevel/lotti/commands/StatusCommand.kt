@@ -13,20 +13,20 @@ class StatusCommand(context: CommandContext, parameters: MutableList<String>): C
                 OperationStatus.COMPLETED -> {
                     val creatorUser = context.guild.getUserByID(creatorId ?: 0)
                     val creatorName = creatorUser.getNicknameForGuild(context.guild)?: creatorUser.getDisplayName(context.guild)
-                    appendContent("Here's this channel's lottery status:\n\n")
-                    appendContent("Creator: $creatorName, Currency: $currencyName, Ticket Price: $ticketPrice\n")
+                    +"Here's this channel's lottery status:\n\n"
+                    +"Creator: $creatorName, Currency: $currencyName, Ticket Price: $ticketPrice\n"
                     if (users.isNotEmpty()) {
-                        appendContent("People entered:\n")
+                        +"People entered:\n"
                         for (userTicket: Pair<Long, Int> in users) {
                             val user = context.guild.getUserByID(userTicket.first)
                             val userName = user.getNicknameForGuild(context.guild)?: user.getDisplayName(context.guild)
-                            appendContent("$userName: ${userTicket.second} tickets\n")
+                            +"$userName: ${userTicket.second} tickets\n"
                         }
                     } else {
-                        appendContent("Oh...no one wants to play $creatorName's game. Is it because they smell?")
+                        +"Oh...no one wants to play $creatorName's game. Is it because they smell?"
                     }
                 }
-                OperationStatus.DOES_NOT_EXIST -> withContent("Hey ${context.sender.mention(true)}, I know you're eager to throw away money but there's no lottery started. Ask your leaders to start one.")
+                OperationStatus.DOES_NOT_EXIST -> +"Hey I know you're eager to throw away money but there's no lottery started. Ask your leaders to start one."
                 else -> sendInvalidMessage()
             }
         }

@@ -19,11 +19,11 @@ class FeedbackCommand(context: CommandContext, parameters: MutableList<String>):
             if (feedback.isNotBlank()) {
                 val op = LotteryDatabase.sendFeedback(context.sender, feedback)
                 when (op) {
-                    OperationStatus.COMPLETED -> appendContent("Feedback recieved! Thanks for criticizing me!")
+                    OperationStatus.COMPLETED -> +"Feedback recieved! Thanks for criticizing me!"
                     else -> sendInvalidMessage()
                 }
             } else {
-                appendContent("I would love to hear your thoughts on the wonderful, amazing me, buuuuuuuut you need to actually write something about me first!")
+                +"I would love to hear your thoughts on the wonderful, amazing me, buuuuuuuut you need to actually write something about me first!"
             }
         }
     }

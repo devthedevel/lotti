@@ -42,23 +42,25 @@ class RequestTicketCommand(context: CommandContext, parameters: MutableList<Stri
             when (op) {
                 OperationStatus.COMPLETED -> {
                     if (targetUser == context.sender) {
-                        appendContent("You bought $numTickets tickets. You have $approved approved tickets, and $requested requested tickets.")
+                        +"You bought $numTickets tickets. You have $approved approved tickets, and $requested requested tickets."
                     } else {
-                        appendContent("You bought ${targetUser.mention(true)} $numTickets tickets! They have $approved approved tickets, and $requested requested tickets.")
+                        +"You bought ${targetUser.mention(true)} $numTickets tickets! They have $approved approved tickets, and $requested requested tickets."
                     }
                 }
                 OperationStatus.DOES_NOT_EXIST -> {
-                    appendContent("I know you're eager to throw away money but there's no lottery started. Ask your leaders to start one.")
+                    +"I know you're eager to throw away money but there's no lottery started. Ask your leaders to start one."
                 }
-                else -> InvalidCommand(context, parameters).execute()
+                else -> sendInvalidMessage()
             }
         }
     }
 
-    override fun sendInvalidMessage(message: String?) {
-        when (numTickets) {
-            0 -> super.sendInvalidMessage("You need to tell me how many tickets you want to buy!")
-            in Int.MIN_VALUE..-1 -> super.sendInvalidMessage("You can't buy negative tickets silly goose. Try that again.")
+    override fun sendInvalidMessage() {
+        sendMessage {
+            when (numTickets) {
+                0 -> +"You need to tell me how many tickets you want to buy!"
+                in Int.MIN_VALUE..-1 -> +"You can't buy negative tickets silly goose. Try that again."
+            }
         }
     }
 

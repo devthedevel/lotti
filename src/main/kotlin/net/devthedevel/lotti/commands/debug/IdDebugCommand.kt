@@ -18,12 +18,12 @@ class IdDebugCommand(context: CommandContext, parameters: MutableList<String>): 
                     val guild = Lotti.CLIENT.getGuildByID(id)
 
                     if (guild != null) {
-                        appendContent("Guild: ${guild.name}")
+                        +"Guild: ${guild.name}"
                     }
                 } else {
-                    appendContent("User: ${user.name} AKA ${user.getNicknameForGuild(context.guild)}")
+                    +"User: ${user.name} AKA ${user.getNicknameForGuild(context.guild)}"
                 }
-            } else appendContent("Come on Dev, gimme a proper ID. God, stop being bad!")
+            } else +"Come on Dev, gimme a proper ID. God, stop being bad!"
         }
     }
 

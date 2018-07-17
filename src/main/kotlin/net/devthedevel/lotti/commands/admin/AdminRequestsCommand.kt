@@ -36,7 +36,7 @@ class AdminRequestsCommand(context: CommandContext, parameters: MutableList<Stri
 
                     //Return early if user given in JSON does not exist in guild
                     if (json != null && requests?.isEmpty() == true) {
-                        sendMessage { appendContent("User doesn't exist. Have you spelled the name correctly?") }
+                        sendMessage { +"User doesn't exist. Have you spelled the name correctly?" }
                         return
                     }
 
@@ -48,11 +48,11 @@ class AdminRequestsCommand(context: CommandContext, parameters: MutableList<Stri
                                 users.forEach {
                                     val username = it.user?.getNicknameForGuild(context.guild)
                                             ?: it.user?.getDisplayName(context.guild)
-                                    appendContent("- $username: ${it.tickets} requested tickets\n")
+                                    +"- $username: ${it.tickets} requested tickets\n"
                                 }
                             }
                         }
-                        OperationStatus.NO_RESULT -> sendMessage { appendContent("No requested tickets at this time") }
+                        OperationStatus.NO_RESULT -> sendMessage { +"No requested tickets at this time" }
                         else -> { }
                     }
             }

@@ -32,9 +32,9 @@ class AdminConfigCommand(context: CommandContext, parameters: MutableList<String
                 sendMessage {
                     when (op) {
                         OperationStatus.COMPLETED -> {
-                            appendContent("Currency: ${_options.currency}, Price: ${_options.price}\n")
-                            appendContent("Admin Roles: \n")
-                            roles.forEach{appendContent("- $it \n")}
+                            +"Currency: ${_options.currency}, Price: ${_options.price}\n"
+                            +"Admin Roles: \n"
+                            roles.forEach{+"- $it \n"}
                         }
                         else -> {}
                     }
@@ -48,13 +48,13 @@ class AdminConfigCommand(context: CommandContext, parameters: MutableList<String
                     sendMessage {
                         when (op) {
                             OperationStatus.COMPLETED -> {
-                                appendContent("Roles deleted")
+                                +"Roles deleted"
                             }
-                            else -> sendInvalidMessage("Stay calm. I don't think that worked. Relax its not your fault. Just letting you know. Carry on.")
+                            else -> sendMessage{ +"Stay calm. I don't think that worked. Relax its not your fault. Just letting you know. Carry on." }
                         }
                     }
                 } else {
-                    sendInvalidMessage("Excuse me. Hey. What are you removing? Nothing, that's what. Try again with some roles to remove please.")
+                    sendMessage{ +"Excuse me. Hey. What are you removing? Nothing, that's what. Try again with some roles to remove please." }
                 }
             }
             //Update current guild's config
@@ -63,13 +63,13 @@ class AdminConfigCommand(context: CommandContext, parameters: MutableList<String
                     LotteryDatabase.setAdminOptions(context.guild, context.channel, options, adminOp)
 
                     sendMessage {
-                        appendContent("Set the following:\n")
-                        if (options.currency != null) appendContent("Currency: ${options.currency}\n")
-                        if (options.price != null) appendContent("Ticket Price: ${options.price}\n")
+                        +"Set the following:\n"
+                        if (options.currency != null) +"Currency: ${options.currency}\n"
+                        if (options.price != null) +"Ticket Price: ${options.price}\n"
                         if (options.roles.isNotEmpty()) {
-                            appendContent("Admin Roles:\n")
+                            +"Admin Roles:\n"
                             options.roles.forEach {
-                                appendContent(it.name + "\n")
+                                + "${it.name} + \n"
                             }
                         }
                     }

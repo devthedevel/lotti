@@ -26,28 +26,28 @@ class DrawWinnerCommand(context: CommandContext, parameters: MutableList<String>
                     OperationStatus.COMPLETED -> {
                         if (result.userTicketList.isNotEmpty()) {
                             val boundedNumOfWinners = if (numOfWinners > result.userTicketList.size) result.userTicketList.size else numOfWinners
-                            appendContent("Drawing $boundedNumOfWinners winners...\n\n")
+                            +"Drawing $boundedNumOfWinners winners...\n\n"
                             result.getWinners(boundedNumOfWinners).mapNotNull { context.guild.getUserByID(it) }.forEach {
-                                appendContent("- ${it.mention(true)}!\n")
+                                +"- ${it.mention(true)}!\n"
                             }
                             LotteryDatabase.deleteLotto(context.guild, context.channel)
                         } else {
-                            appendContent("Huh, looks like no one has any approved tickets...")
+                            +"Huh, looks like no one has any approved tickets..."
                         }
                     }
                     OperationStatus.DOES_NOT_EXIST -> {
-                        appendContent("If there's no lottery then how can anyone be a winner?")
+                        +"If there's no lottery then how can anyone be a winner?"
                     }
                     else -> sendInvalidMessage()
                 }
             } else {
-                appendContent("Well this is awkward. You need to be an admin to actually draw from the lottery.")
+                +"Well this is awkward. You need to be an admin to actually draw from the lottery."
             }
         }
     }
 
-    override fun sendInvalidMessage(message: String?) {
-        super.sendInvalidMessage("Well I need to know how many winners to select...")
+    override fun sendInvalidMessage() {
+        sendMessage { +"Well I need to know how many winners to select..." }
     }
 
     companion object {

@@ -4,6 +4,7 @@ import net.devthedevel.lotti.Lotti
 import net.devthedevel.lotti.commands.admin.AdminCommand
 import net.devthedevel.lotti.commands.debug.IdDebugCommand
 import net.devthedevel.lotti.db.LotteryDatabase
+import net.devthedevel.lotti.utils.CommandMessageBuilder
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent
 import sx.blah.discord.handle.obj.IChannel
 import sx.blah.discord.handle.obj.IGuild
@@ -17,7 +18,7 @@ abstract class Command constructor(val context: CommandContext, val parameters: 
             val sender: IUser = event.author
             val channel: IChannel = event.channel
             val guild: IGuild = event.guild
-            var commandName: String? = null
+            val commandName: String?
             val parameters = event.message.content.split(" ").toMutableList()
 
             //Early return
@@ -56,16 +57,12 @@ abstract class Command constructor(val context: CommandContext, val parameters: 
 
     abstract fun execute()
 
-    open fun sendInvalidMessage(message: String? = null) {
-        sendMessage(context.channel, context.sender, {
-            if (message != null) {
-                appendContent(message)
-            } else appendContent("Hmmm something went wrong. Maybe try it again?")
-        })
+    open fun sendInvalidMessage() {
+        sendMessage(context.channel, context.sender, { +"Hmmm something went wrong. Maybe try it again?"} )
     }
 
-    fun sendMessage(channel: IChannel = context.channel, user: IUser? = null, message: MessageBuilder.() -> Unit) {
-        MessageBuilder(Lotti.CLIENT).apply {
+    fun sendMessage(channel: IChannel = context.channel, user: IUser? = null, message: CommandMessageBuilder.() -> Unit) {
+        CommandMessageBuilder(Lotti.CLIENT).apply {
             withChannel(channel)
             if (user != null) {
                 withContent(user.mention(true) + "\n")

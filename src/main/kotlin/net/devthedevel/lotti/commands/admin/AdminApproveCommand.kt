@@ -22,9 +22,7 @@ class AdminApproveCommand(context: CommandContext, parameters: MutableList<Strin
             val op = LotteryDatabase.approveTickets(context.guild, context.channel, approveAll = approveAll)
 
             when (op) {
-                OperationStatus.COMPLETED -> {
-                    sendMessage(context.channel, context.sender, {withContent("All tickets approved!")})
-                }
+                OperationStatus.COMPLETED -> sendMessage{ +"All tickets approved!" }
                 else -> { }
             }
         } else {

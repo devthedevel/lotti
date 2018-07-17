@@ -12,12 +12,12 @@ class CreateNewLottoCommand(context: CommandContext, parameters: MutableList<Str
             when (op) {
                 OperationStatus.COMPLETED -> {
                     if (context.isAdmin) {
-                        appendContent("Alrighty, new lotto started!")
+                        +"Alrighty, new lotto started!"
                     } else {
-                        appendContent("Yo only admins can do this. You're not cool enough to be an admin. #nonadminproblems")
+                        +"Yo only admins can do this. You're not cool enough to be an admin. #nonadminproblems"
                     }
                 }
-                OperationStatus.EXISTS -> appendContent("Hmmm there's currently a lotto started!")
+                OperationStatus.EXISTS -> +"Hmmm there's currently a lotto started!"
                 else -> sendInvalidMessage()
             }
         }

@@ -17,9 +17,7 @@ class AdminCommand(context: CommandContext, parameters: MutableList<String>): Co
                 else -> sendInvalidMessage()
             }
         } else {
-            sendMessage(context.channel, context.sender, {
-                appendContent("Wait a second....you're not an admin! I will not execute this command now. Sorry (not sorry).")
-            })
+            sendMessage{ +"Wait a second....you're not an admin! I will not execute this command now. Sorry (not sorry)." }
         }
     }
 
