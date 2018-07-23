@@ -10,6 +10,7 @@ object Config {
             ConfigurationProperties.fromResource("lotti.config")
 
     //Property keys
+    private val discordDev = Key("discord.dev", booleanType)
     private val discordToken = Key("discord.token", stringType)
     private val databaseType = Key("database.type", stringType)
     private val databaseHost = Key("database.host", stringType)
@@ -22,6 +23,7 @@ object Config {
     Config objects
      */
     object Discord {
+        val dev: Boolean = config[discordDev]
         val token: String = config[discordToken]
     }
 

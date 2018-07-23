@@ -2,6 +2,7 @@ package net.devthedevel.lotti
 
 import mu.KotlinLogging
 import net.devthedevel.lotti.commands.Command
+import net.devthedevel.lotti.config.Config
 import net.devthedevel.lotti.db.LotteryDatabase
 import sx.blah.discord.api.events.EventSubscriber
 import sx.blah.discord.handle.impl.events.ReadyEvent
@@ -36,9 +37,17 @@ class LottiEventHandler {
 
     @EventSubscriber
     fun onMessage(event: MessageReceivedEvent) {
-        val command = Command.parseCommand(event)
+        //Quick hack to determine if theres a production instance running already.
+        //Prevents processing events twice, and allows the process to occur only once: either the 'prod' or 'dev' version
+        if (!Config.Discord.dev) {
+            val command = Command.parseCommand(event)
 
-        if (command?.validate() == true) command.execute() else command?.sendInvalidMessage()
+            if (command?.validate() == true) command.execute() else command?.sendInvalidMessage()
+        } else {
+            val command = Command.parseCommand(event)
+
+            if (command?.validate() == true) command.execute() else command?.sendInvalidMessage()
+        }
     }
 
 }

@@ -30,7 +30,7 @@ object LotteryDatabase {
     private val db: Database
 
     init {
-        val url = "jdbc:${Config.Database.type}://${Config.Database.host}:${Config.Database.port}/${Config.Database.name}?user=${Config.Database.user}&password=${Config.Database.password}"
+        val url = "jdbc:${Config.Database.type}://${Config.Database.host}:${Config.Database.port}/${Config.Database.name}?user=${Config.Database.user}&password=${Config.Database.password}&currentSchema=${if (Config.Discord.dev) "dev" else "public"}"
         db = Database.Companion.connect({DriverManager.getConnection(url)})
     }
 
