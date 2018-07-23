@@ -43,10 +43,12 @@ class LottiEventHandler {
             val command = Command.parseCommand(event)
 
             if (command?.validate() == true) command.execute() else command?.sendInvalidMessage()
-        } else {
+        } else if (Config.Discord.dev){
             val command = Command.parseCommand(event)
 
             if (command?.validate() == true) command.execute() else command?.sendInvalidMessage()
+        } else {
+            //Do nothing
         }
     }
 
