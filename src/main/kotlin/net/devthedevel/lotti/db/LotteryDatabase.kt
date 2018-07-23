@@ -1,9 +1,11 @@
 package net.devthedevel.lotti.db
 
+import mu.KotlinLogging
 import net.devthedevel.lotti.Lotti
 import net.devthedevel.lotti.commands.admin.AdminOperation
 import net.devthedevel.lotti.commands.admin.AdminOptions
 import net.devthedevel.lotti.commands.admin.AdminRequests
+import net.devthedevel.lotti.config.Config
 import net.devthedevel.lotti.db.dto.ChannelStatus
 import net.devthedevel.lotti.db.dto.DatabaseResult
 import net.devthedevel.lotti.db.dto.Lottery
@@ -21,9 +23,16 @@ import sx.blah.discord.handle.obj.IRole
 import sx.blah.discord.handle.obj.IUser
 import java.sql.DriverManager
 
+private val log = KotlinLogging.logger {}
+
 object LotteryDatabase {
 
-    private var db: Database = Database.connect({DriverManager.getConnection(Lotti.DATABASE_URL)})
+    private val db: Database
+
+    init {
+        val url = "jdbc:${Config.Database.type}://${Config.Database.host}:${Config.Database.port}/${Config.Database.name}?user=${Config.Database.user}&password=${Config.Database.password}"
+        db = Database.Companion.connect({DriverManager.getConnection(url)})
+    }
 
     fun initTables() {
         transaction(db) {

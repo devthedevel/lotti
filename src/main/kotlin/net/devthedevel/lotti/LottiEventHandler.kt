@@ -11,11 +11,10 @@ import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedE
 import sx.blah.discord.handle.obj.ActivityType
 import sx.blah.discord.handle.obj.StatusType
 
+private val log = KotlinLogging.logger {}
+
 class LottiEventHandler {
 
-    companion object {
-        private val log = KotlinLogging.logger {}
-    }
     @EventSubscriber
     fun onReady(event: ReadyEvent) {
         log.info { "Lotti ready!" }
@@ -37,7 +36,9 @@ class LottiEventHandler {
 
     @EventSubscriber
     fun onMessage(event: MessageReceivedEvent) {
-        Command.parseCommand(event).apply { this?.execute() }
+        val command = Command.parseCommand(event)
+
+        if (command?.validate() == true) command.execute() else command?.sendInvalidMessage()
     }
 
 }

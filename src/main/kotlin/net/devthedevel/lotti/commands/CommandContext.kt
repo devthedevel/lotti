@@ -7,6 +7,4 @@ import sx.blah.discord.handle.obj.IUser
 data class CommandContext(val guild: IGuild,
                           val channel: IChannel,
                           val sender: IUser,
-                          val json: String? = null,
-                          val isAdmin: Boolean = false,
-                          val arguments: MutableList<String> = mutableListOf())
+                          val isAdmin: Boolean = false)

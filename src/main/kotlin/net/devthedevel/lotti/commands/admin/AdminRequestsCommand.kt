@@ -10,14 +10,11 @@ import net.devthedevel.lotti.db.OperationStatus
 import net.devthedevel.lotti.json.UserConverter
 import sx.blah.discord.util.MessageBuilder
 
-class AdminRequestsCommand(context: CommandContext): Command(context) {
-    companion object {
-        const val COMMAND_NAME: String = "requests"
-    }
+class AdminRequestsCommand(context: CommandContext, parameters: MutableList<String>): Command(context, parameters) {
 
-    private val json: String? = context.json
-    private val adminOp: AdminOperation = if (context.arguments.isNotEmpty()) {
-        val arg0 = context.arguments.removeAt(0)
+    private val json: String? = null //context.json TODO Update parsing syntax
+    private val adminOp: AdminOperation = if (parameters.isNotEmpty()) {
+        val arg0 = parameters.removeAt(0)
         if (arg0 != "[]") {
             AdminOperation.parseOperation(arg0)
         }
@@ -36,14 +33,10 @@ class AdminRequestsCommand(context: CommandContext): Command(context) {
 
         when (adminOp) {
             AdminOperation.GET -> {
-                MessageBuilder(Lotti.CLIENT).apply {
-                    withChannel(context.channel)
 
                     //Return early if user given in JSON does not exist in guild
                     if (json != null && requests?.isEmpty() == true) {
-                        withContent(context.sender.mention(true) + "\n")
-                        appendContent("User doesn't exist. Have you spelled the name correctly?")
-                        send()
+                        sendMessage { +"User doesn't exist. Have you spelled the name correctly?" }
                         return
                     }
 
@@ -51,29 +44,28 @@ class AdminRequestsCommand(context: CommandContext): Command(context) {
 
                     when (op) {
                         OperationStatus.COMPLETED -> {
-                            withContent(context.sender.mention(true) + "\n")
-                            users.forEach {
-                                val username = it.user?.getNicknameForGuild(context.guild)
-                                        ?: it.user?.getDisplayName(context.guild)
-                                appendContent("- $username: ${it.tickets} requested tickets\n")
+                            sendMessage {
+                                users.forEach {
+                                    val username = it.user?.getNicknameForGuild(context.guild)
+                                            ?: it.user?.getDisplayName(context.guild)
+                                    +"- $username: ${it.tickets} requested tickets\n"
+                                }
                             }
                         }
-                        OperationStatus.NO_RESULT -> {
-                            withContent(context.sender.mention(true) + "\n")
-                            appendContent("No requested tickets at this time")
-                        }
-                        else -> {
-                        }
+                        OperationStatus.NO_RESULT -> sendMessage { +"No requested tickets at this time" }
+                        else -> { }
                     }
-                    send()
-                }
             }
             AdminOperation.SET -> {
                 if (requests != null && requests.isNotEmpty()) {
                     print("")
                 }
             }
-            else -> return sendInvalidCommandMessage()
+            else -> return sendInvalidMessage()
         }
+    }
+
+    companion object {
+        const val COMMAND_NAME: String = "requests"
     }
 }
