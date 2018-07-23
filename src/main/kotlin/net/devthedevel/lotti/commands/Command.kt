@@ -1,8 +1,10 @@
 package net.devthedevel.lotti.commands
 
+import com.natpryce.konfig.ConfigurationMap
 import net.devthedevel.lotti.Lotti
 import net.devthedevel.lotti.commands.admin.AdminCommand
 import net.devthedevel.lotti.commands.debug.IdDebugCommand
+import net.devthedevel.lotti.config.Config
 import net.devthedevel.lotti.db.LotteryDatabase
 import net.devthedevel.lotti.utils.CommandMessageBuilder
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent
@@ -21,8 +23,13 @@ abstract class Command constructor(val context: CommandContext, val parameters: 
             val commandName: String?
             val parameters = event.message.content.split(" ").toMutableList()
 
+            //Quick hack to allow 'prod' and 'dev' instances together
+            //Will only process one command respective to whichever environment we are currently in
+            val commandEnv = parameters.removeAt(0)
+            val isDev = if (Lotti.COMMAND_PREFIX == commandEnv) false else if (Lotti.COMMAND_PREFIX_DEV == commandEnv) true else null
+
             //Early return
-            if (sender.isBot || Lotti.COMMAND_PREFIX != parameters.removeAt(0)) return null
+            if (sender.isBot || isDev == null || Config.Discord.dev != isDev) return null
 
             commandName = parameters.removeAt(0)
 

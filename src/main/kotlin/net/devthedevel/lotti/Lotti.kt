@@ -10,6 +10,7 @@ class Lotti {
         //Constants
         const val VERSION = "alpha_1.0"
         const val COMMAND_PREFIX = "/lotti"
+        const val COMMAND_PREFIX_DEV = "/dlotti"
 
         //Discord gateway client
         val CLIENT: IDiscordClient = ClientBuilder().withToken(Config.Discord.token).build()

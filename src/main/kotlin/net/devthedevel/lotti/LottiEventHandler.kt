@@ -37,19 +37,9 @@ class LottiEventHandler {
 
     @EventSubscriber
     fun onMessage(event: MessageReceivedEvent) {
-        //Quick hack to determine if theres a production instance running already.
-        //Prevents processing events twice, and allows the process to occur only once: either the 'prod' or 'dev' version
-        if (!Config.Discord.dev) {
-            val command = Command.parseCommand(event)
+        val command = Command.parseCommand(event)
 
-            if (command?.validate() == true) command.execute() else command?.sendInvalidMessage()
-        } else if (Config.Discord.dev){
-            val command = Command.parseCommand(event)
-
-            if (command?.validate() == true) command.execute() else command?.sendInvalidMessage()
-        } else {
-            //Do nothing
-        }
+        if (command?.validate() == true) command.execute() else command?.sendInvalidMessage()
     }
 
 }
